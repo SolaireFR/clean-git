@@ -3,11 +3,24 @@ import { Branch } from '../types';
 const messages = {
   description:
     'Git Branch Pruner helps you manage local Git branches by identifying and removing branches that are no longer needed, especially those that have been merged or deleted from remote.',
-  refreshButton: 'Refresh Branches',
+  refreshTitle: 'Refresh branches',
   deleteSelectedButton: 'Delete Selected',
   noBranches: 'No branches found',
   selectAll: 'Select All',
 };
+
+export interface RepositoryOption {
+  path: string;
+  label: string;
+}
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// Arrow-circle icon drawn with the current text color
+const refreshIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M12.5 1.5v3h-3" />
+</svg>`;
 
 export function getErrorContent(errorMessage: string): string {
   return `
@@ -30,7 +43,12 @@ export function getErrorContent(errorMessage: string): string {
   `;
 }
 
-export function getBranchListContent(branches: Branch[]): string {
+export function getBranchListContent(
+  branches: Branch[],
+  repositories: RepositoryOption[],
+  selectedRepository: string
+): string {
+  const selected = repositories.find((repository) => repository.path === selectedRepository);
   const getBranchStatus = (branch: Branch) => {
     const badges = [];
 
@@ -135,6 +153,41 @@ export function getBranchListContent(branches: Branch[]): string {
                 cursor: not-allowed;
                 background-color: var(--vscode-button-secondaryBackground);
             }
+            .toolbar {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                margin: 10px 0;
+            }
+            .toolbar select, .repo-name {
+                flex: 1;
+                min-width: 0;
+            }
+            .toolbar select {
+                padding: 4px;
+                color: var(--vscode-dropdown-foreground);
+                background-color: var(--vscode-dropdown-background);
+                border: 1px solid var(--vscode-dropdown-border);
+            }
+            .repo-name {
+                font-weight: 600;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            button.icon-button {
+                display: flex;
+                padding: 4px;
+                margin: 0;
+                color: var(--vscode-icon-foreground);
+                background: transparent;
+            }
+            button.icon-button:hover {
+                background-color: var(--vscode-toolbar-hoverBackground);
+            }
+            button.icon-button:disabled {
+                background: transparent;
+            }
             .checkbox-wrapper {
                 margin-right: 10px;
             }
@@ -152,8 +205,24 @@ export function getBranchListContent(branches: Branch[]): string {
         <div class="description">
             ${messages.description}
         </div>
-        <div class="actions">
-            <button id="refreshBtn" onclick="refresh()">${messages.refreshButton}</button>
+        <div class="toolbar">
+            ${
+              repositories.length > 1
+                ? `<select id="repoSelect" onchange="selectRepository(this.value)">
+                    ${repositories
+                      .map(
+                        (repository) =>
+                          `<option value="${escapeHtml(repository.path)}" ${
+                            repository.path === selectedRepository ? 'selected' : ''
+                          }>${escapeHtml(repository.label)}</option>`
+                      )
+                      .join('')}
+                  </select>`
+                : `<span class="repo-name">${escapeHtml(selected?.label ?? '')}</span>`
+            }
+            <button class="icon-button" onclick="refresh()" title="${messages.refreshTitle}" aria-label="${
+              messages.refreshTitle
+            }">${refreshIcon}</button>
         </div>
         
         ${
@@ -209,6 +278,10 @@ export function getBranchListContent(branches: Branch[]): string {
             function setControlsEnabled(enabled) {
                 allButtons().forEach(button => button.disabled = !enabled);
                 checkboxes().forEach(checkbox => checkbox.disabled = !enabled || checkbox.closest('.branch-item').classList.contains('disabled'));
+                const repoSelect = document.getElementById('repoSelect');
+                if (repoSelect) {
+                    repoSelect.disabled = !enabled;
+                }
                 const selectAllCheckbox = document.querySelector('#select-all input[type="checkbox"]');
                 if (selectAllCheckbox) {
                     selectAllCheckbox.disabled = !enabled;
@@ -228,6 +301,11 @@ export function getBranchListContent(branches: Branch[]): string {
             async function refresh() {
                 setControlsEnabled(false);
                 vscode.postMessage({ type: 'refresh' });
+            }
+
+            function selectRepository(repository) {
+                setControlsEnabled(false);
+                vscode.postMessage({ type: 'selectRepository', repository });
             }
 
             async function deleteSelected() {

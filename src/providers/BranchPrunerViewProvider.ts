@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { GitService } from '../services/GitService';
 import { getErrorContent, getBranchListContent, getLoadingContent } from '../views/webview';
@@ -7,7 +8,7 @@ const messages = {
   refreshing: 'Refreshing branch information...',
   deleting: (count: number) => `Deleting ${count} branch(es)...`,
   gitNotInstalled: 'Git is not installed or not available in PATH. Please install Git and try again.',
-  notGitRepo: 'Current workspace is not a Git repository. Please open a Git repository and try again.',
+  notGitRepo: 'No Git repository found in the current workspace. Please open a Git repository and try again.',
   failedToCheck: 'Failed to check Git environment. Please try again.',
   failedToRefresh: 'Failed to refresh branches. Please try again.',
   failedToDelete: 'Failed to delete branches. Please try again.',
@@ -27,6 +28,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private gitService: GitService;
   private isOperationInProgress = false;
+  private selectedRepository?: string;
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     this.gitService = new GitService();
@@ -87,6 +89,10 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
         case 'refresh':
           await this.withControlsDisabled(() => this.refreshBranches());
           break;
+        case 'selectRepository':
+          this.selectedRepository = data.repository;
+          await this.withControlsDisabled(() => this.refreshBranches());
+          break;
         case 'confirmDelete':
           await this.withControlsDisabled(() => this.confirmAndDeleteBranches(data.branches));
           break;
@@ -115,12 +121,6 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
         return;
       }
 
-      const workingDir = this.gitService.getWorkingDirectory();
-      if (!workingDir || !(await this.gitService.isGitRepository(workingDir))) {
-        this._view.webview.html = getErrorContent(messages.notGitRepo);
-        return;
-      }
-
       // After environment check passes, directly execute refresh instead of showing ready status
       await this.refreshBranches();
     } catch (error) {
@@ -133,7 +133,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
    * @param branchNames List of branch names to delete
    */
   private async confirmAndDeleteBranches(branchNames: string[]) {
-    if (!this._view || !branchNames.length) {
+    if (!this._view || !this.selectedRepository || !branchNames.length) {
       return;
     }
 
@@ -151,7 +151,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
     if (result === messages.deleteButton) {
       try {
         this._view.webview.html = getLoadingContent(messages.deleting(branchNames.length));
-        await this.gitService.deleteBranches(branchNames);
+        await this.gitService.deleteBranches(this.selectedRepository, branchNames);
         await this.refreshBranches();
       } catch (error) {
         this._view.webview.html = getErrorContent(messages.failedToDelete);
@@ -196,8 +196,26 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
 
     try {
       this._view.webview.html = getLoadingContent(messages.refreshing);
-      const branches = await this.gitService.getBranches();
-      this._view.webview.html = getBranchListContent(branches);
+
+      // Re-read the list on each refresh so repositories opened in the meantime show up
+      const repositories = await this.gitService.getRepositories();
+      if (!repositories.length) {
+        this._view.webview.html = getErrorContent(messages.notGitRepo);
+        return;
+      }
+      if (!this.selectedRepository || !repositories.includes(this.selectedRepository)) {
+        this.selectedRepository = repositories[0];
+      }
+
+      const branches = await this.gitService.getBranches(this.selectedRepository);
+      this._view.webview.html = getBranchListContent(
+        branches,
+        repositories.map((repository) => ({
+          path: repository,
+          label: vscode.workspace.asRelativePath(repository).replace(/\/$/, '') || path.basename(repository),
+        })),
+        this.selectedRepository
+      );
     } catch (error) {
       this._view.webview.html = getErrorContent(messages.failedToRefresh);
     }

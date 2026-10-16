@@ -76,6 +76,36 @@ pnpm dlx @vscode/vsce package
 code --install-extension git-branch-pruner-*.vsix
 ```
 
+### Update the installed extension after a local change
+
+1. Rebuild and repackage:
+
+   ```bash
+   pnpm run build:esbuild
+   pnpm dlx @vscode/vsce package
+   ```
+
+2. Reinstall over the existing version. `--force` is required when the version in `package.json` has not changed:
+
+   ```bash
+   code --install-extension git-branch-pruner-<version>.vsix --force
+   ```
+
+3. Run **Developer: Reload Window** (or restart VS Code) to load the new build.
+
+Optionally, bump the version first with `pnpm version patch --no-git-tag-version` so the installed version shows the change in the Extensions view.
+
+> Use the exact `.vsix` file name: PowerShell does not expand `*`, and old packages pile up in the project folder (they are ignored by git).
+
+> **Still seeing the old UI after reloading?** Check that the original extension (publisher `monkeykjy`) is not installed alongside this fork (publisher `SolaireFR`). Both register the same view IDs, so VS Code only shows the first one. List and remove it with:
+>
+> ```bash
+> code --list-extensions --show-versions | grep -i pruner
+> code --uninstall-extension monkeykjy.git-branch-pruner
+> ```
+>
+> Then reload the window again. (In PowerShell, use `Select-String pruner` instead of `grep -i pruner`.)
+
 ## Feedback
 
 If you encounter any issues or have suggestions, please raise them in [GitHub Issues](https://github.com/SolaireFR/git-branch-pruner/issues).

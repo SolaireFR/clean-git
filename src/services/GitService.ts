@@ -5,6 +5,15 @@ import { Branch } from '../types';
 
 const execAsync = promisify(exec);
 
+/** Subset of the built-in Git extension API (extensions/git/src/api/git.d.ts) */
+interface GitExtension {
+  getAPI(version: 1): {
+    state: 'uninitialized' | 'initialized';
+    onDidChangeState: vscode.Event<string>;
+    repositories: { rootUri: vscode.Uri }[];
+  };
+}
+
 /**
  * Git operations service class
  * Handles all Git-related command line operations
@@ -36,12 +45,7 @@ export class GitService {
    * Get all branch information
    * Includes local branches and remote branch status
    */
-  public async getBranches(): Promise<Branch[]> {
-    const workingDir = this.getWorkingDirectory();
-    if (!workingDir) {
-      return [];
-    }
-
+  public async getBranches(workingDir: string): Promise<Branch[]> {
     if (!(await this.checkGitInstallation())) {
       return [];
     }
@@ -57,12 +61,7 @@ export class GitService {
    * Delete specified local branches
    * @param branchNames List of branch names to delete
    */
-  public async deleteBranches(branchNames: string[]): Promise<void> {
-    const workingDir = this.getWorkingDirectory();
-    if (!workingDir) {
-      return;
-    }
-
+  public async deleteBranches(workingDir: string, branchNames: string[]): Promise<void> {
     for (const branch of branchNames) {
       try {
         await this.execGit(`git branch -D "${branch}"`, workingDir);
@@ -73,18 +72,40 @@ export class GitService {
     }
   }
 
-  public getWorkingDirectory(): string | undefined {
-    // Get the currently opened project folder in VS Code
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    if (!workspaceFolder) {
-      this.outputChannel.appendLine('No workspace folder found');
-      vscode.window.showErrorMessage('Please open a folder in VS Code first');
-      return undefined;
+  /**
+   * List Git repositories of the workspace (multi-root folders and nested repositories)
+   * Relies on the built-in Git extension, falls back to the workspace folders
+   */
+  public async getRepositories(): Promise<string[]> {
+    let repositories: string[] = [];
+
+    try {
+      const api = (await vscode.extensions.getExtension<GitExtension>('vscode.git')?.activate())?.getAPI(1);
+      if (api) {
+        if (api.state !== 'initialized') {
+          await new Promise<void>((resolve) => {
+            const listener = api.onDidChangeState(() => {
+              listener.dispose();
+              resolve();
+            });
+          });
+        }
+        repositories = api.repositories.map((repository) => repository.rootUri.fsPath);
+      }
+    } catch (error) {
+      this.outputChannel.appendLine(`Git extension unavailable: ${error}`);
     }
 
-    const folderPath = workspaceFolder.uri.fsPath;
-    this.outputChannel.appendLine(`Working directory: ${folderPath}`);
-    return folderPath;
+    if (!repositories.length) {
+      for (const folder of vscode.workspace.workspaceFolders ?? []) {
+        if (await this.isGitRepository(folder.uri.fsPath)) {
+          repositories.push(folder.uri.fsPath);
+        }
+      }
+    }
+
+    this.outputChannel.appendLine(`Found ${repositories.length} repositories`);
+    return [...new Set(repositories)].sort();
   }
 
   public async checkGitInstallation(): Promise<boolean> {

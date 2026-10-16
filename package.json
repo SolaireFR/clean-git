@@ -2,7 +2,7 @@
   "name": "git-branch-pruner",
   "displayName": "Git Branch Pruner",
   "description": "Visually manage and clean up local Git branches that are no longer needed",
-  "version": "0.1.1",
+  "version": "1.0.2",
   "publisher": "SolaireFR",
   "author": {
     "name": "SolaireFR",
