@@ -1,76 +1,31 @@
-import { exec, ExecOptions } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
 import { Branch } from '../types';
+import { parseBranches, REF_FORMAT } from './branchParser';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /** Subset of the built-in Git extension API (extensions/git/src/api/git.d.ts) */
 interface GitExtension {
   getAPI(version: 1): {
+    git: { path: string };
     state: 'uninitialized' | 'initialized';
     onDidChangeState: vscode.Event<string>;
     repositories: { rootUri: vscode.Uri }[];
   };
 }
 
+const FETCH_TIMEOUT_MS = 60_000;
+
 /**
  * Git operations service class
- * Handles all Git-related command line operations
+ * Runs git directly (no shell): arguments are never interpreted, so branch names cannot inject commands
  */
 export class GitService {
-  private outputChannel: vscode.OutputChannel;
-  private readonly env: NodeJS.ProcessEnv;
-
-  constructor() {
-    this.outputChannel = vscode.window.createOutputChannel('Git Branch Pruner');
-
-    // Configure environment variables
-    this.env = {
-      ...process.env,
-      LANG: 'en_US.UTF-8',
-      LC_ALL: 'en_US.UTF-8',
-      GIT_TERMINAL_PROMPT: '0',
-      // Windows system specific configuration
-      ...(process.platform === 'win32'
-        ? {
-            FORCE_COLOR: '1',
-            CHCP: '65001', // Set command prompt to use UTF-8 encoding
-          }
-        : {}),
-    };
-  }
-
-  /**
-   * Get all branch information
-   * Includes local branches and remote branch status
-   */
-  public async getBranches(workingDir: string): Promise<Branch[]> {
-    if (!(await this.checkGitInstallation())) {
-      return [];
-    }
-    if (!(await this.isGitRepository(workingDir))) {
-      return [];
-    }
-
-    await this.fetchRemote(workingDir);
-    return await this.getAllBranches(workingDir);
-  }
-
-  /**
-   * Delete specified local branches
-   * @param branchNames List of branch names to delete
-   */
-  public async deleteBranches(workingDir: string, branchNames: string[]): Promise<void> {
-    for (const branch of branchNames) {
-      try {
-        await this.execGit(`git branch -D "${branch}"`, workingDir);
-        vscode.window.showInformationMessage(`Deleted branch: ${branch}`);
-      } catch (error) {
-        vscode.window.showErrorMessage(`Failed to delete branch: ${branch}`);
-      }
-    }
-  }
+  private readonly outputChannel = vscode.window.createOutputChannel('Git Branch Pruner');
+  /** Git executable used by VS Code (honors the `git.path` setting), resolved with the repositories */
+  private gitPath = 'git';
 
   /**
    * List Git repositories of the workspace (multi-root folders and nested repositories)
@@ -90,6 +45,7 @@ export class GitService {
             });
           });
         }
+        this.gitPath = api.git.path;
         repositories = api.repositories.map((repository) => repository.rootUri.fsPath);
       }
     } catch (error) {
@@ -97,180 +53,78 @@ export class GitService {
     }
 
     if (!repositories.length) {
-      for (const folder of vscode.workspace.workspaceFolders ?? []) {
-        if (await this.isGitRepository(folder.uri.fsPath)) {
-          repositories.push(folder.uri.fsPath);
-        }
-      }
+      const roots = await Promise.all(
+        (vscode.workspace.workspaceFolders ?? []).map((folder) =>
+          this.git(['rev-parse', '--show-toplevel'], folder.uri.fsPath).then(
+            (stdout) => stdout.trim(),
+            (error) => {
+              // Git missing must surface; a folder that is not a repository is just skipped
+              if (isGitNotFound(error)) {
+                throw error;
+              }
+              return '';
+            }
+          )
+        )
+      );
+      repositories = roots.filter((root) => root);
     }
 
-    this.outputChannel.appendLine(`Found ${repositories.length} repositories`);
     return [...new Set(repositories)].sort();
   }
 
-  public async checkGitInstallation(): Promise<boolean> {
+  /**
+   * Get local branches with their remote status, from local refs only (one git process, no network)
+   */
+  public async getBranches(workingDir: string): Promise<Branch[]> {
+    const stdout = await this.git(['for-each-ref', `--format=${REF_FORMAT}`, 'refs/heads', 'refs/remotes'], workingDir);
+    return parseBranches(stdout);
+  }
+
+  /**
+   * Update remote-tracking branches and drop the ones deleted on the remote
+   */
+  public async fetch(workingDir: string): Promise<void> {
     try {
-      await this.execGit('git --version');
-      return true;
+      await this.git(['fetch', '--prune'], workingDir, FETCH_TIMEOUT_MS);
     } catch (error) {
-      return false;
+      this.outputChannel.appendLine(`Fetch error: ${error}`);
+      vscode.window.showWarningMessage('Failed to fetch from remote. Branch information might be outdated.');
     }
   }
 
-  public async isGitRepository(workingDir: string): Promise<boolean> {
+  /**
+   * Delete local branches in a single git call
+   * `--` ends options parsing so a name starting with "-" stays a branch name
+   */
+  public async deleteBranches(workingDir: string, branchNames: string[]): Promise<void> {
     try {
-      await this.execGit('git rev-parse --git-dir', workingDir);
-      return true;
+      await this.git(['branch', '-D', '--', ...branchNames], workingDir);
+      vscode.window.showInformationMessage(`Deleted ${branchNames.length} branch(es).`);
     } catch (error) {
-      return false;
+      // git deletes what it can and reports the others: the refreshed list shows the outcome
+      this.outputChannel.appendLine(`Delete error: ${error}`);
+      vscode.window.showErrorMessage(`Some branches could not be deleted: ${(error as { stderr?: string }).stderr ?? error}`);
     }
   }
 
-  private getExecOptions(cwd?: string): ExecOptions {
-    const baseOptions: ExecOptions = {
-      env: this.env,
-      shell: process.platform === 'win32' ? 'bash.exe' : '/bin/sh',
+  private async git(args: string[], cwd: string, timeout = 0): Promise<string> {
+    const { stdout } = await execFileAsync(this.gitPath, args, {
+      cwd,
+      timeout,
       windowsHide: true,
-    };
-
-    if (cwd) {
-      return { ...baseOptions, cwd };
-    }
-
-    return baseOptions;
-  }
-
-  private async execGit(command: string, cwd?: string): Promise<{ stdout: string; stderr: string }> {
-    try {
-      const options = this.getExecOptions(cwd);
-      const result = await execAsync(command, options);
-      return result;
-    } catch (error) {
-      // If using bash.exe fails, try using cmd.exe
-      if (process.platform === 'win32') {
-        try {
-          const fallbackOptions: ExecOptions = {
-            ...this.getExecOptions(cwd),
-            shell: 'cmd.exe',
-          };
-          const result = await execAsync(command, fallbackOptions);
-          return result;
-        } catch (fallbackError) {
-          this.outputChannel.appendLine(
-            `Git command failed (fallback): ${
-              fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-            }`
-          );
-          throw fallbackError;
-        }
-      }
-      throw error;
-    }
-  }
-
-  private async fetchRemote(workingDir: string): Promise<void> {
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: 'Updating branch information...',
-        cancellable: false,
+      maxBuffer: 64 * 1024 * 1024,
+      env: {
+        ...process.env,
+        GIT_TERMINAL_PROMPT: '0', // never block waiting for credentials
+        GIT_OPTIONAL_LOCKS: '0', // do not contend with VS Code's own git operations
       },
-      async (progress) => {
-        try {
-          progress.report({ message: 'Fetching from remote...' });
-          this.outputChannel.appendLine('Fetching from remote...');
-
-          const { stdout: fetchOutput, stderr: fetchError } = await this.execGit('git fetch --prune', workingDir);
-
-          if (fetchError) {
-            this.outputChannel.appendLine(`Fetch warning: ${fetchError}`);
-          }
-          if (fetchOutput) {
-            this.outputChannel.appendLine(`Fetch output: ${fetchOutput}`);
-          }
-
-          progress.report({ message: 'Fetch completed', increment: 100 });
-        } catch (error) {
-          this.outputChannel.appendLine(`Fetch error: ${error}`);
-          vscode.window.showWarningMessage('Failed to fetch from remote. Branch information might be outdated.');
-        }
-      }
-    );
+    });
+    return stdout;
   }
+}
 
-  private async getCurrentBranch(workingDir: string): Promise<string> {
-    try {
-      const { stdout } = await this.execGit('git rev-parse --abbrev-ref HEAD', workingDir);
-      return stdout.trim();
-    } catch (error) {
-      this.outputChannel.appendLine(`Error getting current branch: ${error}`);
-      return '';
-    }
-  }
-
-  private async getMainBranch(workingDir: string): Promise<string> {
-    try {
-      // Check in order of common main branch names
-      const commonMainBranches = ['main', 'master'];
-      for (const branchName of commonMainBranches) {
-        try {
-          await this.execGit(`git rev-parse --verify ${branchName}`, workingDir);
-          return branchName;
-        } catch {
-          continue;
-        }
-      }
-      // If none found, return empty string
-      return '';
-    } catch (error) {
-      this.outputChannel.appendLine(`Error getting main branch: ${error}`);
-      return '';
-    }
-  }
-
-  private async getAllBranches(workingDir: string): Promise<Branch[]> {
-    try {
-      const currentBranch = await this.getCurrentBranch(workingDir);
-      const mainBranch = await this.getMainBranch(workingDir);
-
-      // Get local branches
-      const { stdout: localOutput } = await this.execGit('git branch --no-color', workingDir);
-
-      // Get remote branches
-      const { stdout: remoteOutput } = await this.execGit('git branch -r --no-color', workingDir);
-
-      // Process local branches
-      const localBranches = localOutput
-        .split('\n')
-        .map((b) => b.trim())
-        .filter((b) => b)
-        .map((b) => b.replace('* ', ''));
-
-      // Process remote branches
-      const remoteBranches = remoteOutput
-        .split('\n')
-        .map((b) => b.trim())
-        .filter((b) => b)
-        .map((b) => b.replace('origin/', ''));
-
-      this.outputChannel.appendLine(
-        `Found ${localBranches.length} local branches and ${remoteBranches.length} remote branches`
-      );
-
-      return localBranches.map((name) => ({
-        name,
-        isLocal: true,
-        exists: {
-          local: true,
-          remote: remoteBranches.includes(name),
-        },
-        isCurrentBranch: name === currentBranch,
-        isMainBranch: name === mainBranch,
-      }));
-    } catch (error) {
-      this.outputChannel.appendLine(`Error getting branches: ${error}`);
-      vscode.window.showErrorMessage('Failed to get Git branches');
-      return [];
-    }
-  }
+/** Spawn failed because the git executable does not exist */
+export function isGitNotFound(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException)?.code === 'ENOENT';
 }

@@ -2,7 +2,7 @@
   "name": "git-branch-pruner",
   "displayName": "Git Branch Pruner",
   "description": "Visually manage and clean up local Git branches that are no longer needed",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "publisher": "SolaireFR",
   "author": {
     "name": "SolaireFR",
@@ -36,6 +36,13 @@
   "bugs": {
     "url": "https://github.com/SolaireFR/git-branch-pruner/issues"
   },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Running git in a repository can execute commands from its configuration (e.g. core.sshCommand)."
+    },
+    "virtualWorkspaces": false
+  },
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
@@ -66,6 +73,7 @@
     "watch": "pnpm run watch:esbuild",
     "pretest": "pnpm run compile",
     "test": "vscode-test",
+    "test:unit": "ts-node src/test/branchParser.check.ts",
     "build:esbuild": "ts-node ./esbuild.ts",
     "package": "vsce package",
     "publish": "vsce publish",
