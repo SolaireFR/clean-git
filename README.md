@@ -78,6 +78,19 @@ code --install-extension git-branch-pruner-*.vsix
 
 ### Update the installed extension after a local change
 
+One command does it all: clean old `.vsix` files, build, package, uninstall the original `monkeykjy` extension if present, and install the new package.
+
+```bash
+# Windows
+powershell -ExecutionPolicy Bypass -File scripts/update-local.ps1
+# Linux / macOS
+./scripts/update-local.sh
+```
+
+Then run **Developer: Reload Window** in VS Code (the VS Code CLI cannot reload a window).
+
+The manual steps below do the same thing.
+
 1. Rebuild and repackage:
 
    ```bash
