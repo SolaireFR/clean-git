@@ -7,13 +7,21 @@ import { parseBranches, REF_FORMAT } from './branchParser';
 const execFileAsync = promisify(execFile);
 
 /** Subset of the built-in Git extension API (extensions/git/src/api/git.d.ts) */
+interface GitRepository {
+  rootUri: vscode.Uri;
+  /** Fires when VS Code's watcher on .git sees a change (HEAD, refs, fetch, working tree...) */
+  state: { onDidChange: vscode.Event<void> };
+}
+interface GitApi {
+  git: { path: string };
+  state: 'uninitialized' | 'initialized';
+  onDidChangeState: vscode.Event<string>;
+  repositories: GitRepository[];
+  onDidOpenRepository: vscode.Event<GitRepository>;
+  onDidCloseRepository: vscode.Event<GitRepository>;
+}
 interface GitExtension {
-  getAPI(version: 1): {
-    git: { path: string };
-    state: 'uninitialized' | 'initialized';
-    onDidChangeState: vscode.Event<string>;
-    repositories: { rootUri: vscode.Uri }[];
-  };
+  getAPI(version: 1): GitApi;
 }
 
 const FETCH_TIMEOUT_MS = 60_000;
@@ -26,18 +34,16 @@ export class GitService {
   private readonly outputChannel = vscode.window.createOutputChannel('Git Branch Pruner');
   /** Git executable used by VS Code (honors the `git.path` setting), resolved with the repositories */
   private gitPath = 'git';
+  private api?: Promise<GitApi | undefined>;
 
   /**
-   * List Git repositories of the workspace (multi-root folders and nested repositories)
-   * Relies on the built-in Git extension, falls back to the workspace folders
+   * Built-in Git extension API, once its initial repository scan is done (undefined if unavailable)
    */
-  public async getRepositories(): Promise<string[]> {
-    let repositories: string[] = [];
-
-    try {
-      const api = (await vscode.extensions.getExtension<GitExtension>('vscode.git')?.activate())?.getAPI(1);
-      if (api) {
-        if (api.state !== 'initialized') {
+  private getApi(): Promise<GitApi | undefined> {
+    this.api ??= (async () => {
+      try {
+        const api = (await vscode.extensions.getExtension<GitExtension>('vscode.git')?.activate())?.getAPI(1);
+        if (api && api.state !== 'initialized') {
           await new Promise<void>((resolve) => {
             const listener = api.onDidChangeState(() => {
               listener.dispose();
@@ -45,12 +51,60 @@ export class GitService {
             });
           });
         }
-        this.gitPath = api.git.path;
-        repositories = api.repositories.map((repository) => repository.rootUri.fsPath);
+        if (api) {
+          this.gitPath = api.git.path;
+        }
+        return api;
+      } catch (error) {
+        this.outputChannel.appendLine(`Git extension unavailable: ${error}`);
+        return undefined;
       }
-    } catch (error) {
-      this.outputChannel.appendLine(`Git extension unavailable: ${error}`);
+    })();
+    return this.api;
+  }
+
+  /**
+   * Notify Git changes without polling, through the file watchers VS Code's Git extension already runs
+   * @param listener Called with the repository root that changed, or without argument when repositories are added/removed
+   */
+  public async watch(listener: (repository?: string) => void): Promise<vscode.Disposable> {
+    const api = await this.getApi();
+    if (!api) {
+      return new vscode.Disposable(() => undefined);
     }
+
+    const repositoryListeners = new Map<GitRepository, vscode.Disposable>();
+    const watchRepository = (repository: GitRepository) =>
+      repositoryListeners.set(
+        repository,
+        repository.state.onDidChange(() => listener(repository.rootUri.fsPath))
+      );
+    api.repositories.forEach(watchRepository);
+
+    const apiListeners = [
+      api.onDidOpenRepository((repository) => {
+        watchRepository(repository);
+        listener();
+      }),
+      api.onDidCloseRepository((repository) => {
+        repositoryListeners.get(repository)?.dispose();
+        repositoryListeners.delete(repository);
+        listener();
+      }),
+    ];
+
+    return new vscode.Disposable(() => {
+      apiListeners.forEach((disposable) => disposable.dispose());
+      repositoryListeners.forEach((disposable) => disposable.dispose());
+    });
+  }
+
+  /**
+   * List Git repositories of the workspace (multi-root folders and nested repositories)
+   * Relies on the built-in Git extension, falls back to the workspace folders
+   */
+  public async getRepositories(): Promise<string[]> {
+    let repositories = (await this.getApi())?.repositories.map((repository) => repository.rootUri.fsPath) ?? [];
 
     if (!repositories.length) {
       const roots = await Promise.all(

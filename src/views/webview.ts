@@ -271,11 +271,22 @@ const branchListScript = `
   const selectAll = document.getElementById('selectAllCheckbox');
   const selectable = () => Array.from(document.querySelectorAll('.branch-checkbox:not([data-locked])'));
   let controlsEnabled = document.body.dataset.busy !== 'true';
+  const repository = document.querySelector('.branch-list')?.dataset.repository;
+
+  // Keep the selection across re-renders (Git changes detected, view hidden then shown)
+  const saved = vscode.getState();
+  if (repository && saved?.repository === repository) {
+    selectable().forEach((box) => (box.checked = saved.checked.includes(box.dataset.branch)));
+  }
 
   // Delete button label and "select all" state follow the selection
   function updateSelection() {
     const boxes = selectable();
-    const count = boxes.filter((box) => box.checked).length;
+    const checked = boxes.filter((box) => box.checked).map((box) => box.dataset.branch);
+    const count = checked.length;
+    if (repository) {
+      vscode.setState({ repository, checked });
+    }
     if (deleteBtn) {
       deleteBtn.textContent = count ? 'Delete ' + count + ' branch' + (count > 1 ? 'es' : '') : '${messages.deleteSelectedButton}';
       deleteBtn.disabled = !controlsEnabled || count === 0;
@@ -420,7 +431,7 @@ export function getBranchListContent(
         <input type="checkbox" id="selectAllCheckbox" aria-label="Select all branches" ${disabled(!hasDeletable)}>
         <span>${branches.length} branch${branches.length > 1 ? 'es' : ''}</span>
       </label>
-      <ul class="branch-list">
+      <ul class="branch-list" data-repository="${escapeHtml(selectedRepository)}">
         ${branches
           .map((branch) => {
             const locked = branch.isMainBranch || branch.isCurrentBranch;

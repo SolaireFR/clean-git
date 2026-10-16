@@ -1,11 +1,14 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { GitService, isGitNotFound } from '../services/GitService';
+import { Branch } from '../types';
 import { getErrorContent, getBranchListContent, getLoadingContent } from '../views/webview';
+
+/** Git events come in bursts (a checkout touches many files): wait for quiet before syncing */
+const SYNC_DELAY_MS = 400;
 
 const messages = {
   checking: 'Checking Git environment...',
-  deleting: (count: number) => `Deleting ${count} branch(es)...`,
   gitNotInstalled: 'Git is not installed or not available in PATH. Please install Git and try again.',
   notGitRepo: 'No Git repository found in the current workspace. Please open a Git repository and try again.',
   failedToRefresh: 'Failed to refresh branches. Please try again.',
@@ -32,6 +35,11 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
   private deletableBranches = new Set<string>();
   /** Repositories already fetched this session: switching back to them does not hit the network again */
   private readonly fetchedRepositories = new Set<string>();
+  /** Repository + branches currently displayed, to skip re-rendering when nothing changed */
+  private renderedSignature = '';
+  private syncTimer?: ReturnType<typeof setTimeout>;
+  /** A Git change arrived while hidden or busy: sync once possible */
+  private pendingSync?: { repositoriesChanged: boolean };
 
   /**
    * Initialize WebView view
@@ -44,6 +52,14 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [], // the view loads no local file
     };
     webviewView.webview.onDidReceiveMessage((message) => this.handleMessage(message));
+
+    const watcher = this.gitService.watch((repository) => this.onGitChange(repository));
+    webviewView.onDidChangeVisibility(() => this.scheduleSync());
+    webviewView.onDidDispose(() => {
+      clearTimeout(this.syncTimer);
+      void watcher.then((disposable) => disposable.dispose());
+      this.view = undefined;
+    });
 
     webviewView.webview.html = getLoadingContent(messages.checking);
     void this.withControlsDisabled(() => this.refresh(false));
@@ -97,7 +113,61 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
     } finally {
       this.isOperationInProgress = false;
       await this.setControlsState(true);
+      this.scheduleSync();
     }
+  }
+
+  /**
+   * Git changed (branch created/deleted, checkout, fetch, repository opened/closed...)
+   * @param repository Root of the repository that changed, undefined when repositories were added/removed
+   */
+  private onGitChange(repository?: string) {
+    if (repository && repository !== this.selectedRepository) {
+      return;
+    }
+    this.pendingSync = { repositoriesChanged: !repository || !!this.pendingSync?.repositoriesChanged };
+    this.scheduleSync();
+  }
+
+  private scheduleSync() {
+    clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => void this.sync(), SYNC_DELAY_MS);
+  }
+
+  /**
+   * Apply a pending Git change: local refs only (no fetch), re-render only if the list differs
+   * Waits while the view is hidden or an operation runs (it is re-scheduled afterwards)
+   */
+  private async sync() {
+    const pending = this.pendingSync;
+    if (!pending || !this.view?.visible || this.isOperationInProgress) {
+      return;
+    }
+    this.pendingSync = undefined;
+
+    if (pending.repositoriesChanged) {
+      return this.withControlsDisabled(() => this.refresh(false));
+    }
+    const repository = this.selectedRepository;
+    if (!repository) {
+      return;
+    }
+    try {
+      const branches = await this.gitService.getBranches(repository);
+      // An operation started meanwhile renders its own result: do not overwrite it
+      if (this.isOperationInProgress || repository !== this.selectedRepository) {
+        return;
+      }
+      if (this.signature(repository, branches) !== this.renderedSignature) {
+        await this.render(repository, false, branches);
+      }
+    } catch (error) {
+      // The next refresh reports errors; a background sync stays silent
+    }
+  }
+
+  private signature(repository: string, branches: Branch[]): string {
+    return JSON.stringify([repository, this.repositories, branches]);
   }
 
   /**
@@ -136,8 +206,9 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async render(repository: string, busy: boolean) {
-    const branches = await this.gitService.getBranches(repository);
+  private async render(repository: string, busy: boolean, branches?: Branch[]) {
+    branches ??= await this.gitService.getBranches(repository);
+    this.renderedSignature = this.signature(repository, branches);
     this.deletableBranches = new Set(
       branches.filter((branch) => !branch.isMainBranch && !branch.isCurrentBranch).map((branch) => branch.name)
     );
@@ -172,9 +243,14 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    this.view.webview.html = getLoadingContent(messages.deleting(branchNames.length));
     await this.gitService.deleteBranches(repository, branchNames);
-    await this.refresh(false);
+    // Render right away (~30 ms): the Git watcher event that follows finds the same list and is skipped,
+    // and the view stays correct even when the Git extension (and its events) is unavailable
+    try {
+      await this.render(repository, false);
+    } catch (error) {
+      this.view.webview.html = getErrorContent(messages.failedToRefresh);
+    }
   }
 
   /**
