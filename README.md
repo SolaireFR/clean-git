@@ -2,6 +2,8 @@
 
 A VS Code extension to help you manage and clean up Git branches.
 
+Fork of [monkeykjy/git-branch-pruner](https://github.com/monkeykjy/git-branch-pruner) by monkeykjy.
+
 English | [Chinese](README_EN.md)
 
 ## Features
@@ -49,7 +51,7 @@ English | [Chinese](README_EN.md)
 ### Setup
 
 ```bash
-git clone https://github.com/monkeykjy/git-branch-pruner.git
+git clone https://github.com/SolaireFR/git-branch-pruner.git
 cd git-branch-pruner
 pnpm install
 ```
@@ -76,7 +78,7 @@ code --install-extension git-branch-pruner-*.vsix
 
 ## Feedback
 
-If you encounter any issues or have suggestions, please raise them in [GitHub Issues](https://github.com/monkeykjy/git-branch-pruner/issues).
+If you encounter any issues or have suggestions, please raise them in [GitHub Issues](https://github.com/SolaireFR/git-branch-pruner/issues).
 
 ## Changelog
 

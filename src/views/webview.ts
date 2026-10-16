@@ -1,95 +1,15 @@
 import { Branch } from '../types';
 
-interface LocalizedMessages {
-  description: string;
-  refreshButton: string;
-  deleteSelectedButton: string;
-  noBranches: string;
-  selectAll: string;
-  unselectAll: string;
-}
+const messages = {
+  description:
+    'Git Branch Pruner helps you manage local Git branches by identifying and removing branches that are no longer needed, especially those that have been merged or deleted from remote.',
+  refreshButton: 'Refresh Branches',
+  deleteSelectedButton: 'Delete Selected',
+  noBranches: 'No branches found',
+  selectAll: 'Select All',
+};
 
-function getLocalizedMessages(isChineseLanguage: boolean): LocalizedMessages {
-  return isChineseLanguage
-    ? {
-        description:
-          'Git Branch Pruner helps you manage local Git branches by identifying and removing branches that are no longer needed, especially those that have been merged or deleted from remote.',
-        refreshButton: 'Refresh Branches',
-        deleteSelectedButton: 'Delete Selected',
-        noBranches: 'No branches found',
-        selectAll: 'Select All',
-        unselectAll: 'Unselect All',
-      }
-    : {
-        description:
-          'Git Branch Pruner helps you manage local Git branches by identifying and removing branches that are no longer needed, especially those that have been merged or deleted from remote.',
-        refreshButton: 'Refresh Branches',
-        deleteSelectedButton: 'Delete Selected',
-        noBranches: 'No branches found',
-        selectAll: 'Select All',
-        unselectAll: 'Unselect All',
-      };
-}
-
-export function getInitialContent(isChineseLanguage: boolean): string {
-  const messages = getLocalizedMessages(isChineseLanguage);
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body { 
-                padding: 10px; 
-                font-family: var(--vscode-font-family);
-                color: var(--vscode-foreground);
-            }
-            .description {
-                margin-bottom: 20px;
-                line-height: 1.4;
-            }
-            .actions { 
-                margin: 10px 0; 
-            }
-            button { 
-                background-color: var(--vscode-button-background);
-                color: var(--vscode-button-foreground);
-                border: none;
-                padding: 6px 12px;
-                cursor: pointer;
-                margin: 5px;
-                border-radius: 2px;
-            }
-            button:hover {
-                background-color: var(--vscode-button-hoverBackground);
-            }
-            button:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-                background-color: var(--vscode-button-secondaryBackground);
-            }
-        </style>
-    </head>
-    <body>
-        <div class="description">
-            ${messages.description}
-        </div>
-        <div class="actions">
-            <button id="refreshBtn" onclick="refresh()">${messages.refreshButton}</button>
-        </div>
-        <script>
-            const vscode = acquireVsCodeApi();
-
-            function refresh() {
-                vscode.postMessage({ type: 'refresh' });
-            }
-        </script>
-    </body>
-    </html>
-  `;
-}
-
-export function getErrorContent(errorMessage: string, isChineseLanguage: boolean): string {
-  const messages = getLocalizedMessages(isChineseLanguage);
+export function getErrorContent(errorMessage: string): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -110,23 +30,22 @@ export function getErrorContent(errorMessage: string, isChineseLanguage: boolean
   `;
 }
 
-export function getBranchListContent(branches: Branch[], isChineseLanguage: boolean): string {
-  const messages = getLocalizedMessages(isChineseLanguage);
+export function getBranchListContent(branches: Branch[]): string {
   const getBranchStatus = (branch: Branch) => {
     const badges = [];
 
     if (branch.exists.remote) {
-      badges.push(`<span class="status-badge in-sync">${isChineseLanguage ? 'Remote: ✓' : 'Remote: ✓'}</span>`);
+      badges.push(`<span class="status-badge in-sync">Remote: ✓</span>`);
     } else {
-      badges.push(`<span class="status-badge stale">${isChineseLanguage ? 'Remote: ✗' : 'Remote: ✗'}</span>`);
+      badges.push(`<span class="status-badge stale">Remote: ✗</span>`);
     }
 
     if (branch.isCurrentBranch) {
-      badges.push(`<span class="status-badge current">${isChineseLanguage ? 'Current' : 'Current'}</span>`);
+      badges.push(`<span class="status-badge current">Current</span>`);
     }
 
     if (branch.isMainBranch) {
-      badges.push(`<span class="status-badge main">${isChineseLanguage ? 'Main' : 'Main'}</span>`);
+      badges.push(`<span class="status-badge main">Main</span>`);
     }
 
     return badges.join('');
@@ -336,8 +255,7 @@ export function getBranchListContent(branches: Branch[], isChineseLanguage: bool
   `;
 }
 
-export function getLoadingContent(message: string, isChineseLanguage: boolean): string {
-  const messages = getLocalizedMessages(isChineseLanguage);
+export function getLoadingContent(message: string): string {
   return `
     <!DOCTYPE html>
     <html>
@@ -383,67 +301,4 @@ export function getLoadingContent(message: string, isChineseLanguage: boolean): 
     </body>
     </html>
   `;
-}
-
-export function getReadyContent(isChineseLanguage: boolean): string {
-  const messages = getLocalizedMessages(isChineseLanguage);
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body { 
-                padding: 10px; 
-                font-family: var(--vscode-font-family);
-                color: var(--vscode-foreground);
-            }
-            .description {
-                margin-bottom: 20px;
-                line-height: 1.4;
-            }
-            .actions { 
-                margin: 10px 0; 
-            }
-            button { 
-                background-color: var(--vscode-button-background);
-                color: var(--vscode-button-foreground);
-                border: none;
-                padding: 6px 12px;
-                cursor: pointer;
-                margin: 5px;
-                border-radius: 2px;
-            }
-            button:hover {
-                background-color: var(--vscode-button-hoverBackground);
-            }
-            button:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-                background-color: var(--vscode-button-secondaryBackground);
-            }
-        </style>
-    </head>
-    <body>
-        <div class="description">
-            ${messages.description}
-        </div>
-        <div class="actions">
-            <button id="refreshBtn" onclick="refresh()">${messages.refreshButton}</button>
-        </div>
-        <script>
-            const vscode = acquireVsCodeApi();
-
-            function refresh() {
-                const refreshBtn = document.getElementById('refreshBtn');
-                refreshBtn.disabled = true;
-                vscode.postMessage({ type: 'refresh' });
-            }
-        </script>
-    </body>
-    </html>
-  `;
-}
-
-export function getCheckingContent(isChineseLanguage: boolean): string {
-  return getLoadingContent('Checking Git environment...', isChineseLanguage);
 }

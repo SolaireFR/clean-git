@@ -2,6 +2,23 @@ import * as vscode from 'vscode';
 import { GitService } from '../services/GitService';
 import { getErrorContent, getBranchListContent, getLoadingContent } from '../views/webview';
 
+const messages = {
+  checking: 'Checking Git environment...',
+  refreshing: 'Refreshing branch information...',
+  deleting: (count: number) => `Deleting ${count} branch(es)...`,
+  gitNotInstalled: 'Git is not installed or not available in PATH. Please install Git and try again.',
+  notGitRepo: 'Current workspace is not a Git repository. Please open a Git repository and try again.',
+  failedToCheck: 'Failed to check Git environment. Please try again.',
+  failedToRefresh: 'Failed to refresh branches. Please try again.',
+  failedToDelete: 'Failed to delete branches. Please try again.',
+  deleteConfirmSingle: 'Are you sure you want to delete the following branch?',
+  deleteConfirmMultiple: (total: number) => `Are you sure you want to delete the following ${total} branches?`,
+  deleteDetail: 'This operation will only delete local branches. Remote branches will not be affected.',
+  deleteButton: 'Delete Branches',
+  cancelButton: 'Cancel',
+  andMore: (count: number) => `...and ${count} more`,
+};
+
 /**
  * WebView provider for Git Branch Pruner
  * Manages branch list display, refresh, and delete operations
@@ -10,59 +27,9 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private gitService: GitService;
   private isOperationInProgress = false;
-  private readonly currentLanguage: string;
 
   constructor(private readonly _extensionUri: vscode.Uri) {
     this.gitService = new GitService();
-    this.currentLanguage = vscode.env.language;
-  }
-
-  /**
-   * Check if current environment is Chinese
-   * Supports both Simplified and Traditional Chinese
-   */
-  private isChineseLanguage(): boolean {
-    return this.currentLanguage.toLowerCase().startsWith('zh');
-  }
-
-  /**
-   * Get localized message text
-   * Returns Chinese or English messages based on current language environment
-   */
-  private getLocalizedMessages() {
-    return this.isChineseLanguage()
-      ? {
-          checking: 'Checking Git environment...',
-          refreshing: 'Refreshing branch information...',
-          deleting: (count: number) => `Deleting ${count} branch(es)...`,
-          gitNotInstalled: 'Git is not installed or cannot be found in PATH. Please install Git and try again.',
-          notGitRepo: 'Current workspace is not a Git repository. Please open a Git repository and try again.',
-          failedToCheck: 'Failed to check Git environment. Please try again.',
-          failedToRefresh: 'Failed to refresh branches. Please try again.',
-          failedToDelete: 'Failed to delete branches. Please try again.',
-          deleteConfirmSingle: 'Are you sure you want to delete the following branch?',
-          deleteConfirmMultiple: (total: number) => `Are you sure you want to delete the following ${total} branches?`,
-          deleteDetail: 'This operation will only delete local branches. Remote branches will not be affected.',
-          deleteButton: 'Delete Branches',
-          cancelButton: 'Cancel',
-          andMore: (count: number) => `...and ${count} more`,
-        }
-      : {
-          checking: 'Checking Git environment...',
-          refreshing: 'Refreshing branch information...',
-          deleting: (count: number) => `Deleting ${count} branch(es)...`,
-          gitNotInstalled: 'Git is not installed or not available in PATH. Please install Git and try again.',
-          notGitRepo: 'Current workspace is not a Git repository. Please open a Git repository and try again.',
-          failedToCheck: 'Failed to check Git environment. Please try again.',
-          failedToRefresh: 'Failed to refresh branches. Please try again.',
-          failedToDelete: 'Failed to delete branches. Please try again.',
-          deleteConfirmSingle: 'Are you sure you want to delete the following branch?',
-          deleteConfirmMultiple: (total: number) => `Are you sure you want to delete the following ${total} branches?`,
-          deleteDetail: 'This operation will only delete local branches. Remote branches will not be affected.',
-          deleteButton: 'Delete Branches',
-          cancelButton: 'Cancel',
-          andMore: (count: number) => `...and ${count} more`,
-        };
   }
 
   /**
@@ -127,7 +94,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
     });
 
     // Check Git environment on initialization
-    this._view.webview.html = getLoadingContent('Checking Git environment...', this.isChineseLanguage());
+    this._view.webview.html = getLoadingContent(messages.checking);
     await this.checkEnvironment();
   }
 
@@ -140,27 +107,24 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const messages = this.getLocalizedMessages();
-    const isChineseLanguage = this.isChineseLanguage();
-
     try {
-      this._view.webview.html = getLoadingContent(messages.checking, isChineseLanguage);
+      this._view.webview.html = getLoadingContent(messages.checking);
 
       if (!(await this.gitService.checkGitInstallation())) {
-        this._view.webview.html = getErrorContent(messages.gitNotInstalled, isChineseLanguage);
+        this._view.webview.html = getErrorContent(messages.gitNotInstalled);
         return;
       }
 
       const workingDir = this.gitService.getWorkingDirectory();
       if (!workingDir || !(await this.gitService.isGitRepository(workingDir))) {
-        this._view.webview.html = getErrorContent(messages.notGitRepo, isChineseLanguage);
+        this._view.webview.html = getErrorContent(messages.notGitRepo);
         return;
       }
 
       // After environment check passes, directly execute refresh instead of showing ready status
       await this.refreshBranches();
     } catch (error) {
-      this._view.webview.html = getErrorContent(messages.failedToCheck, isChineseLanguage);
+      this._view.webview.html = getErrorContent(messages.failedToCheck);
     }
   }
 
@@ -172,9 +136,6 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
     if (!this._view || !branchNames.length) {
       return;
     }
-
-    const messages = this.getLocalizedMessages();
-    const isChineseLanguage = this.isChineseLanguage();
 
     const confirmMessage = this.buildConfirmationMessage(branchNames);
 
@@ -189,11 +150,11 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
 
     if (result === messages.deleteButton) {
       try {
-        this._view.webview.html = getLoadingContent(messages.deleting(branchNames.length), isChineseLanguage);
+        this._view.webview.html = getLoadingContent(messages.deleting(branchNames.length));
         await this.gitService.deleteBranches(branchNames);
         await this.refreshBranches();
       } catch (error) {
-        this._view.webview.html = getErrorContent(messages.failedToDelete, isChineseLanguage);
+        this._view.webview.html = getErrorContent(messages.failedToDelete);
       }
     }
     // Removed refresh operation from else branch
@@ -204,7 +165,6 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
    * @param branchNames List of branch names to delete
    */
   private buildConfirmationMessage(branchNames: string[]): string {
-    const messages = this.getLocalizedMessages();
     const totalBranches = branchNames.length;
 
     if (totalBranches === 1) {
@@ -234,15 +194,12 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const messages = this.getLocalizedMessages();
-    const isChineseLanguage = this.isChineseLanguage();
-
     try {
-      this._view.webview.html = getLoadingContent(messages.refreshing, isChineseLanguage);
+      this._view.webview.html = getLoadingContent(messages.refreshing);
       const branches = await this.gitService.getBranches();
-      this._view.webview.html = getBranchListContent(branches, isChineseLanguage);
+      this._view.webview.html = getBranchListContent(branches);
     } catch (error) {
-      this._view.webview.html = getErrorContent(messages.failedToRefresh, isChineseLanguage);
+      this._view.webview.html = getErrorContent(messages.failedToRefresh);
     }
   }
 }

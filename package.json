@@ -3,7 +3,17 @@
   "displayName": "Git Branch Pruner",
   "description": "Visually manage and clean up local Git branches that are no longer needed",
   "version": "0.1.1",
-  "publisher": "monkeykjy",
+  "publisher": "SolaireFR",
+  "author": {
+    "name": "SolaireFR",
+    "url": "https://github.com/SolaireFR"
+  },
+  "contributors": [
+    {
+      "name": "monkeykjy",
+      "url": "https://github.com/monkeykjy"
+    }
+  ],
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -21,10 +31,10 @@
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/monkeykjy/git-branch-pruner"
+    "url": "https://github.com/SolaireFR/git-branch-pruner"
   },
   "bugs": {
-    "url": "https://github.com/monkeykjy/git-branch-pruner/issues"
+    "url": "https://github.com/SolaireFR/git-branch-pruner/issues"
   },
   "activationEvents": [],
   "main": "./dist/extension.js",
