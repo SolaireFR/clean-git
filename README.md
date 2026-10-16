@@ -1,8 +1,8 @@
 # Git Branch Pruner
 
-A VS Code extension to help you manage and clean up Git branches.
+Clean up the local Git branches you no longer need, right from the VS Code sidebar.
 
-Fork of [monkeykjy/git-branch-pruner](https://github.com/monkeykjy/git-branch-pruner) by monkeykjy.
+Over time, local branches pile up: merged features, branches deleted on the server, experiments. Git Branch Pruner lists them with their status, shows which ones no longer exist on the remote, and deletes the ones you pick in one click.
 
 ## Features
 
@@ -13,6 +13,12 @@ Fork of [monkeykjy/git-branch-pruner](https://github.com/monkeykjy/git-branch-pr
 - 🗑️ Delete several local branches at once, with confirmation
 - 🔒 Current and main branches are protected from deletion
 - 🎨 Follows your VS Code theme
+
+## Installation
+
+Download the `.vsix` file from the [GitHub releases](https://github.com/SolaireFR/git-branch-pruner/releases), then in VS Code run **Extensions: Install from VSIX...** from the Command Palette (`Ctrl+Shift+P`).
+
+> If the original extension by monkeykjy is installed, uninstall it first: both use the same view and only one can be displayed.
 
 ## How to Use
 
@@ -42,93 +48,15 @@ Click the refresh icon to fetch the remote and update the remote status. Enable 
 - Branches are deleted with `git branch -D` (force): make sure their changes are merged first
 - Nested repositories are discovered up to `git.repositoryScanMaxDepth` levels (VS Code setting, default 1)
 
-## Local Development
+## Origin
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 20+
-- [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
-- Git
-- VS Code 1.80.0 or higher
-
-### Setup
-
-```bash
-git clone https://github.com/SolaireFR/git-branch-pruner.git
-cd git-branch-pruner
-pnpm install
-```
-
-> pnpm 10+ blocks dependency build scripts by default. If it warns about `esbuild` or `sharp`, run `pnpm approve-builds` (or set them to `true` under `allowBuilds` in `pnpm-workspace.yaml`).
-
-### Run the extension in VS Code
-
-1. Open the project folder in VS Code.
-2. Press `F5` (or **Run and Debug** → **Run Extension**).
-   - This starts the `watch` task (esbuild bundles `src/extension.ts` into `dist/extension.js`) and opens a new **Extension Development Host** window.
-3. In that new window, open a folder that is a Git repository, then click the Git Branch Pruner icon in the activity bar.
-4. After editing the code, esbuild rebuilds automatically; reload the host window with `Ctrl+R` (`Cmd+R` on macOS) or **Developer: Reload Window**.
-
-Breakpoints in `src/` work directly in the original VS Code window. To inspect the webview UI, run **Developer: Open Webview Developer Tools** from the Command Palette of the host window.
-
-### Build and install a local package
-
-```bash
-pnpm run build:esbuild
-pnpm dlx @vscode/vsce package
-code --install-extension git-branch-pruner-*.vsix
-```
-
-### Update the installed extension after a local change
-
-One command does it all: clean old `.vsix` files, build, package, uninstall the original `monkeykjy` extension if present, and install the new package.
-
-```bash
-# Windows
-powershell -ExecutionPolicy Bypass -File scripts/update-local.ps1
-# Linux / macOS
-./scripts/update-local.sh
-```
-
-Then run **Developer: Reload Window** in VS Code (the VS Code CLI cannot reload a window).
-
-The manual steps below do the same thing.
-
-1. Rebuild and repackage:
-
-   ```bash
-   pnpm run build:esbuild
-   pnpm dlx @vscode/vsce package
-   ```
-
-2. Reinstall over the existing version. `--force` is required when the version in `package.json` has not changed:
-
-   ```bash
-   code --install-extension git-branch-pruner-<version>.vsix --force
-   ```
-
-3. Run **Developer: Reload Window** (or restart VS Code) to load the new build.
-
-Optionally, bump the version first with `pnpm version patch --no-git-tag-version` so the installed version shows the change in the Extensions view.
-
-> Use the exact `.vsix` file name: PowerShell does not expand `*`, and old packages pile up in the project folder (they are ignored by git).
-
-> **Still seeing the old UI after reloading?** Check that the original extension (publisher `monkeykjy`) is not installed alongside this fork (publisher `SolaireFR`). Both register the same view IDs, so VS Code only shows the first one. List and remove it with:
->
-> ```bash
-> code --list-extensions --show-versions | grep -i pruner
-> code --uninstall-extension monkeykjy.git-branch-pruner
-> ```
->
-> Then reload the window again. (In PowerShell, use `Select-String pruner` instead of `grep -i pruner`.)
+This project is a fork of [git-branch-pruner](https://github.com/monkeykjy/git-branch-pruner) by [monkeykjy](https://github.com/monkeykjy), forked on 2026-09-24 from version 0.1.1. Since then it gained multi-repository support, automatic updates, a redesigned interface, and security and performance fixes. See the [changelog](CHANGELOG.md) for details.
 
 ## Feedback
 
-If you encounter any issues or have suggestions, please raise them in [GitHub Issues](https://github.com/SolaireFR/git-branch-pruner/issues).
+Found a bug or have a suggestion? Open an issue on [GitHub](https://github.com/SolaireFR/git-branch-pruner/issues).
 
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md)
+Want to contribute or run it locally? See the [development guide](DEVELOPMENT.md).
 
 ## License
 

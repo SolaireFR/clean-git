@@ -3,6 +3,12 @@
 All notable changes to the "git-branch-pruner" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-10-16
+
+### Changed
+
+- README rewritten for users (installation, usage, origin of the project); developer documentation moved to `DEVELOPMENT.md`.
+
 ## [1.3.0] - 2026-10-16
 
 ### Added
