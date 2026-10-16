@@ -4,40 +4,43 @@ A VS Code extension to help you manage and clean up Git branches.
 
 Fork of [monkeykjy/git-branch-pruner](https://github.com/monkeykjy/git-branch-pruner) by monkeykjy.
 
-English | [Chinese](README_EN.md)
-
 ## Features
 
-- 📊 Visually display all local branch statuses
-- 🔄 Show branch synchronization status with remote repository
-- 🗑️ Easily delete merged or remotely deleted branches
-- 🔍 Clearly identify current and main branches
-- 🌏 Support for English interface
+- 📊 List all local branches with their status
+- 🔄 Show which branches still exist on the remote (`git fetch --prune` on refresh)
+- 🗂️ Repository selector for multi-root workspaces and nested repositories
+- ⚡ Automatic update when Git changes (checkout, new or deleted branch, fetch…), without polling
+- 🗑️ Delete several local branches at once, with confirmation
+- 🔒 Current and main branches are protected from deletion
+- 🎨 Follows your VS Code theme
 
 ## How to Use
 
-1. Open a Git repository in VS Code
+1. Open a folder or workspace containing one or more Git repositories
 2. Click the Git Branch Pruner icon in the activity bar
-3. View branch list and status
-4. Select branches to delete and click "Delete Selected" button
+3. Pick a repository in the selector (shown when there are several)
+4. Check the branches to delete and click **Delete N branches**
 
-## Branch Status Indicators
+Click the refresh icon to fetch the remote and update the remote status. Enable VS Code's `git.autofetch` setting to keep it up to date automatically.
 
-- ✓ Remote: Branch exists in remote repository
-- ✗ Remote: Branch does not exist in remote repository
-- Current: Currently checked out branch
-- Main: main or master branch
+## Branch Tags
+
+- `remote`: the branch exists on the remote
+- `local only`: no matching branch on the remote (never pushed, or deleted remotely)
+- `current`: the checked-out branch (cannot be deleted)
+- `main`: the default branch from `origin/HEAD`, else `main` or `master` (cannot be deleted)
 
 ## Requirements
 
 - VS Code 1.80.0 or higher
-- Git 2.0.0 or higher
+- Git installed (the one configured in VS Code's `git.path` setting is used)
+- A trusted workspace: the extension is disabled in Restricted Mode
 
 ## Important Notes
 
 - Delete operations only affect local branches, not remote branches
-- Ensure changes are merged before deleting branches
-- Main branches (main/master) are protected from deletion by default
+- Branches are deleted with `git branch -D` (force): make sure their changes are merged first
+- Nested repositories are discovered up to `git.repositoryScanMaxDepth` levels (VS Code setting, default 1)
 
 ## Local Development
 
