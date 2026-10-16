@@ -37,6 +37,43 @@ English | [Chinese](README_EN.md)
 - Ensure changes are merged before deleting branches
 - Main branches (main/master) are protected from deletion by default
 
+## Local Development
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 20+
+- [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
+- Git
+- VS Code 1.80.0 or higher
+
+### Setup
+
+```bash
+git clone https://github.com/monkeykjy/git-branch-pruner.git
+cd git-branch-pruner
+pnpm install
+```
+
+> pnpm 10+ blocks dependency build scripts by default. If it warns about `esbuild` or `sharp`, run `pnpm approve-builds` (or set them to `true` under `allowBuilds` in `pnpm-workspace.yaml`).
+
+### Run the extension in VS Code
+
+1. Open the project folder in VS Code.
+2. Press `F5` (or **Run and Debug** → **Run Extension**).
+   - This starts the `watch` task (esbuild bundles `src/extension.ts` into `dist/extension.js`) and opens a new **Extension Development Host** window.
+3. In that new window, open a folder that is a Git repository, then click the Git Branch Pruner icon in the activity bar.
+4. After editing the code, esbuild rebuilds automatically; reload the host window with `Ctrl+R` (`Cmd+R` on macOS) or **Developer: Reload Window**.
+
+Breakpoints in `src/` work directly in the original VS Code window. To inspect the webview UI, run **Developer: Open Webview Developer Tools** from the Command Palette of the host window.
+
+### Build and install a local package
+
+```bash
+pnpm run build:esbuild
+pnpm dlx @vscode/vsce package
+code --install-extension git-branch-pruner-*.vsix
+```
+
 ## Feedback
 
 If you encounter any issues or have suggestions, please raise them in [GitHub Issues](https://github.com/monkeykjy/git-branch-pruner/issues).
