@@ -24,6 +24,12 @@ try {
   git(clone, 'branch', '$(id);x&whoami'); // shell metacharacters are valid in branch names
   git(origin, 'branch', '-D', 'gone');
   git(clone, 'fetch', '-q', '--prune');
+  // A newer commit on local-only: it must come first
+  git(clone, 'checkout', '-q', 'local-only');
+  process.env.GIT_COMMITTER_DATE = '2030-08-25T12:00:00Z';
+  git(clone, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'newer');
+  delete process.env.GIT_COMMITTER_DATE;
+  git(clone, 'checkout', '-q', 'develop');
 
   const branches = parseBranches(
     git(clone, 'for-each-ref', `--format=${REF_FORMAT}`, 'refs/heads', 'refs/remotes')
@@ -37,6 +43,8 @@ try {
   assert.ok(!byName['gone'].exists.remote, 'upstream deleted on remote');
   assert.ok(!byName['local-only'].exists.remote);
   assert.ok(!byName['local-only'].isCurrentBranch && !byName['local-only'].isMainBranch);
+  assert.strictEqual(branches[0].name, 'local-only', 'sorted by last commit, newest first');
+  assert.strictEqual(byName['local-only'].lastCommit, Date.parse('2030-08-25T12:00:00Z'));
 
   // Same call shape as GitService.deleteBranches: names are plain arguments, never run by a shell
   git(clone, 'branch', '-D', '--', '$(id);x&whoami', 'local-only');

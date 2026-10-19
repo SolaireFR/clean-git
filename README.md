@@ -29,6 +29,8 @@ Download the `.vsix` file from the [GitHub releases](https://github.com/SolaireF
 
 Click the refresh icon to fetch the remote and update the remote status. Enable VS Code's `git.autofetch` setting to keep it up to date automatically.
 
+Branches are sorted by last commit, newest first. The date of the last commit (`MM-DD`) is shown on the right of the tags; hover it for the full date and time.
+
 ## Branch Tags
 
 - `remote`: the branch exists on the remote

@@ -3,6 +3,16 @@
 All notable changes to the "git-branch-pruner" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] - 2026-10-19
+
+### Added
+
+- Date of the last commit (`MM-DD`) on the right of each branch, with the full date and time on hover.
+
+### Changed
+
+- Branches are sorted by last commit, newest first.
+
 ## [1.3.1] - 2026-10-16
 
 ### Changed

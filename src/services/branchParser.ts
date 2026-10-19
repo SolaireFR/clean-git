@@ -1,7 +1,7 @@
 import { Branch } from '../types';
 
 /** `git for-each-ref` format: one NUL-separated record per line (NUL cannot appear in ref names) */
-export const REF_FORMAT = '%(refname)%00%(HEAD)%00%(upstream)%00%(symref)';
+export const REF_FORMAT = '%(refname)%00%(HEAD)%00%(upstream)%00%(symref)%00%(committerdate:unix)';
 
 const HEADS = 'refs/heads/';
 const REMOTES = 'refs/remotes/';
@@ -14,8 +14,8 @@ export function parseBranches(output: string): Branch[] {
     .split('\n')
     .filter((line) => line)
     .map((line) => {
-      const [ref, head, upstream, symref] = line.split('\0');
-      return { ref, isHead: head === '*', upstream, symref };
+      const [ref, head, upstream, symref, date] = line.split('\0');
+      return { ref, isHead: head === '*', upstream, symref, lastCommit: Number(date) * 1000 };
     });
 
   const remoteRefs = new Set(refs.filter((r) => r.ref.startsWith(REMOTES) && !r.symref).map((r) => r.ref));
@@ -30,7 +30,8 @@ export function parseBranches(output: string): Branch[] {
     ? originHead.slice(`${REMOTES}origin/`.length)
     : ['main', 'master'].find((name) => localNames.includes(name));
 
-  return localRefs.map((r) => {
+  // Most recent last commit first
+  return localRefs.sort((a, b) => b.lastCommit - a.lastCommit).map((r) => {
     const name = r.ref.slice(HEADS.length);
     return {
       name,
@@ -42,6 +43,7 @@ export function parseBranches(output: string): Branch[] {
       },
       isCurrentBranch: r.isHead,
       isMainBranch: name === mainBranch,
+      lastCommit: r.lastCommit,
     };
   });
 }

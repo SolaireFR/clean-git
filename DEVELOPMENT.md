@@ -38,7 +38,7 @@ src/
                                          auto-sync on Git events (debounced, skipped if the list is unchanged)
   services/GitService.ts                 Git access: repositories and git path via the built-in `vscode.git` API,
                                          git commands via execFile (no shell), watch() on Git events
-  services/branchParser.ts               Pure parser of `git for-each-ref` output (no vscode import, testable)
+  services/branchParser.ts               Pure parser of `git for-each-ref` output, sorted by last commit (no vscode import, testable)
   views/webview.ts                       HTML/CSS/JS of the view as strings (CSP + nonce, theme variables)
   types/index.ts                         Branch interface
   test/branchParser.check.ts             Runnable check on a temporary git repo (`pnpm run test:unit`)

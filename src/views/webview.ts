@@ -236,6 +236,12 @@ const styles = `
   .tag.local-only { color: var(--vscode-editorWarning-foreground); }
   .tag.current { color: var(--vscode-charts-blue); }
   .tag.main { color: var(--vscode-charts-purple); }
+  .commit-date {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--vscode-descriptionForeground);
+  }
 
   .empty, .status {
     display: flex;
@@ -436,6 +442,10 @@ export function getBranchListContent(
           .map((branch) => {
             const locked = branch.isMainBranch || branch.isCurrentBranch;
             const name = escapeHtml(branch.name);
+            const date = new Date(branch.lastCommit);
+            const pad = (value: number) => String(value).padStart(2, '0');
+            // e.g. "lundi 25 octobre 2026 à 18:03:11"
+            const fullDate = date.toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'medium' });
             return `
               <li>
                 <label class="row ${locked ? 'locked' : ''}" title="${name}">
@@ -443,6 +453,7 @@ export function getBranchListContent(
                   ${branchIcon}
                   <span class="branch-name">${name}</span>
                   <span class="tags">${tags(branch)}</span>
+                  <span class="commit-date" title="${escapeHtml(fullDate)}">${pad(date.getMonth() + 1)}-${pad(date.getDate())}</span>
                 </label>
               </li>`;
           })

@@ -17,4 +17,6 @@ export interface Branch {
   isCurrentBranch: boolean;
   /** Whether it is the main branch (main/master) */
   isMainBranch: boolean;
+  /** Committer date of the last commit (ms since epoch) */
+  lastCommit: number;
 }
