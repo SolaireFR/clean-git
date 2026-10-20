@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 step() { printf '\033[36m==> %s\033[0m\n' "$1"; }
 
 version=$(node -p "require('./package.json').version")
-vsix="git-branch-pruner-$version.vsix"
+vsix="git-branch-cleaner-$version.vsix"
 
 step 'Clean old packages'
 rm -f ./*.vsix
@@ -18,7 +18,7 @@ pnpm run build:esbuild --production
 step "Package $vsix"
 pnpm dlx @vscode/vsce package --no-dependencies --out "$vsix"
 
-# The original extension registers the same view IDs and would hide this one
+# The original extension (monkeykjy) would add a duplicate view next to this one
 if code --list-extensions | grep -qx 'monkeykjy.git-branch-pruner'; then
   step 'Uninstall original extension (monkeykjy)'
   code --uninstall-extension monkeykjy.git-branch-pruner

@@ -11,13 +11,13 @@ function Invoke-Step([string]$label, [scriptblock]$command) {
 }
 
 $version = node -p "require('./package.json').version"
-$vsix = "git-branch-pruner-$version.vsix"
+$vsix = "git-branch-cleaner-.vsix"
 
 Invoke-Step 'Clean old packages' { Remove-Item *.vsix -ErrorAction SilentlyContinue; $global:LASTEXITCODE = 0 }
 Invoke-Step 'Build' { pnpm run build:esbuild --production }
 Invoke-Step "Package $vsix" { pnpm dlx @vscode/vsce package --no-dependencies --out $vsix }
 
-# The original extension registers the same view IDs and would hide this one
+# The original extension (monkeykjy) would add a duplicate view next to this one
 if (code --list-extensions | Select-String -SimpleMatch -Quiet 'monkeykjy.git-branch-pruner') {
   Invoke-Step 'Uninstall original extension (monkeykjy)' { code --uninstall-extension monkeykjy.git-branch-pruner }
 }

@@ -20,11 +20,11 @@ const messages = {
 };
 
 /**
- * WebView provider for Git Branch Pruner
+ * WebView provider for Git Branch Cleaner
  * Manages branch list display, refresh, and delete operations
  */
 export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewId = 'branchPrunerView';
+  public static readonly viewId = 'gitBranchCleanerView';
 
   private view?: vscode.WebviewView;
   private readonly gitService = new GitService();

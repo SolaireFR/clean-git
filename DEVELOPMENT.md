@@ -1,6 +1,6 @@
 # Development Guide
 
-How to build, run and change Git Branch Pruner. For what the extension does, see the [README](README.md).
+How to build, run and change Git Branch Cleaner. For what the extension does, see the [README](README.md).
 
 ## Prerequisites
 
@@ -12,8 +12,8 @@ How to build, run and change Git Branch Pruner. For what the extension does, see
 ## Setup
 
 ```bash
-git clone https://github.com/SolaireFR/git-branch-pruner.git
-cd git-branch-pruner
+git clone https://github.com/SolaireFR/git-branch-cleaner.git
+cd git-branch-cleaner
 pnpm install
 ```
 
@@ -57,7 +57,7 @@ Communication between the webview and the extension:
 1. Open the project folder in VS Code.
 2. Press `F5` (or **Run and Debug** → **Run Extension**).
    - This starts the `watch` task and opens a new **Extension Development Host** window.
-3. In that new window, open a folder that is a Git repository, then click the Git Branch Pruner icon in the activity bar.
+3. In that new window, open a folder that is a Git repository, then click the Git Branch Cleaner icon in the activity bar.
 4. After editing the code, esbuild rebuilds automatically; reload the host window with `Ctrl+R` (`Cmd+R` on macOS) or **Developer: Reload Window**.
 
 Breakpoints in `src/` work directly in the original VS Code window. To inspect the webview UI, run **Developer: Open Webview Developer Tools** from the Command Palette of the host window.
@@ -80,12 +80,12 @@ Manual equivalent:
 ```bash
 pnpm run build:esbuild --production
 pnpm dlx @vscode/vsce package --no-dependencies
-code --install-extension git-branch-pruner-<version>.vsix --force
+code --install-extension git-branch-cleaner-<version>.vsix --force
 ```
 
 `--force` is required when the version in `package.json` has not changed. Use the exact `.vsix` file name: PowerShell does not expand `*`.
 
-> **Still seeing the old UI after reloading?** The original extension (publisher `monkeykjy`) may be installed alongside this fork (publisher `SolaireFR`). Both register the same view IDs, so VS Code only shows the first one:
+> **Still seeing the old UI after reloading?** The original extension (publisher `monkeykjy`) may be installed alongside this fork (publisher `SolaireFR`). Both add a similar view to the activity bar, so uninstall the original to avoid duplicates:
 >
 > ```bash
 > code --list-extensions --show-versions | grep -i pruner

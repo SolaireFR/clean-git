@@ -31,7 +31,7 @@ const FETCH_TIMEOUT_MS = 60_000;
  * Runs git directly (no shell): arguments are never interpreted, so branch names cannot inject commands
  */
 export class GitService {
-  private readonly outputChannel = vscode.window.createOutputChannel('Git Branch Pruner');
+  private readonly outputChannel = vscode.window.createOutputChannel('Git Branch Cleaner');
   /** Git executable used by VS Code (honors the `git.path` setting), resolved with the repositories */
   private gitPath = 'git';
   private api?: Promise<GitApi | undefined>;

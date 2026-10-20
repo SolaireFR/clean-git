@@ -1,3 +1,7 @@
-<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-    <path fill-rule="evenodd" clip-rule="evenodd" d="M10.5 8.5l3-3L10.5 2.5l-.95.95L11.29 5H9c-.73 0-1.33.6-1.33 1.33v3h1.33V6h2.29l-1.74 1.74.95.76zM6.33 11V8H5v3H2.71l1.74-1.74-.95-.76-3 3 3 3 .95-.95L2.71 12H6.33z" fill="#1E90FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <!-- Tracé des lignes (branches et balai) -->
+  <path d="M 30 470 L 290 210 C 350 270 390 170 460 160 L 340 40 C 330 110 230 150 290 210 M 70 430 L 70 270 M 170 330 L 170 170 M 290 130 L 370 210 M 370 70 L 345 105 M 400 100 L 365 135 M 430 130 L 395 155" fill="none" stroke="#F05032" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+  
+  <!-- Tracé des cercles pleins (remplis) -->
+  <path d="M 45 430 A 20 20 0 1 0 95 430 A 20 20 0 1 0 45 430 M 45 270 A 20 20 0 1 0 95 270 A 20 20 0 1 0 45 270 M 145 330 A 20 20 0 1 0 195 330 A 20 20 0 1 0 145 330 M 145 170 A 20 20 0 1 0 195 170 A 20 20 0 1 0 145 170" fill="#F05032" />
 </svg>
