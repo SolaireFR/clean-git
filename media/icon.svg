@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
-  <!-- Tracé des lignes (branches et balai) -->
-  <path d="M 30 470 L 290 210 C 350 270 390 170 460 160 L 340 40 C 330 110 230 150 290 210 M 70 430 L 70 270 M 170 330 L 170 170 M 290 130 L 370 210 M 370 70 L 345 105 M 400 100 L 365 135 M 430 130 L 395 155" fill="none" stroke="#F05032" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Tracé des lignes (branches et balai) - Stroke augmenté à 30 -->
+  <path d="M 30 470 L 290 210 C 350 270 390 170 460 160 L 340 40 C 330 110 230 150 290 210 M 70 430 L 70 270 M 170 330 L 170 170 M 290 130 L 370 210 M 385 85 L 350 120 M 415 115 L 380 150" fill="none" stroke="#F05032" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" />
   
-  <!-- Tracé des cercles pleins (remplis) -->
-  <path d="M 45 430 A 20 20 0 1 0 95 430 A 20 20 0 1 0 45 430 M 45 270 A 20 20 0 1 0 95 270 A 20 20 0 1 0 45 270 M 145 330 A 20 20 0 1 0 195 330 A 20 20 0 1 0 145 330 M 145 170 A 20 20 0 1 0 195 170 A 20 20 0 1 0 145 170" fill="#F05032" />
+  <!-- Tracé des cercles pleins (remplis) - Diamètre augmenté à 70px (Radius 35px) -->
+  <path d="M 35 430 A 35 35 0 1 0 105 430 A 35 35 0 1 0 35 430 M 35 270 A 35 35 0 1 0 105 270 A 35 35 0 1 0 35 270 M 135 330 A 35 35 0 1 0 205 330 A 35 35 0 1 0 135 330 M 135 170 A 35 35 0 1 0 205 170 A 35 35 0 1 0 135 170" fill="#F05032" />
 </svg>
