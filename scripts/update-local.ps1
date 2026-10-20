@@ -11,7 +11,7 @@ function Invoke-Step([string]$label, [scriptblock]$command) {
 }
 
 $version = node -p "require('./package.json').version"
-$vsix = "git-branch-cleaner-.vsix"
+$vsix = "clean-git-branch-$version.vsix"
 
 Invoke-Step 'Clean old packages' { Remove-Item *.vsix -ErrorAction SilentlyContinue; $global:LASTEXITCODE = 0 }
 Invoke-Step 'Build' { pnpm run build:esbuild --production }

@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 step() { printf '\033[36m==> %s\033[0m\n' "$1"; }
 
 version=$(node -p "require('./package.json').version")
-vsix="git-branch-cleaner-$version.vsix"
+vsix="clean-git-branch-$version.vsix"
 
 step 'Clean old packages'
 rm -f ./*.vsix

@@ -1,13 +1,13 @@
 # Change Log
 
-All notable changes to the "git-branch-cleaner" extension are documented in this file.
+All notable changes to the "clean-git-branch" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
-## [1.4.1] - 2026-10-20
+## [1.4.2] - 2026-10-20
 
 ### Changed
 
-- Renamed the extension from "Git Branch Pruner" to "Git Branch Cleaner" in the interface, the output channel and the documentation. Mentions of the original `monkeykjy/git-branch-pruner` fork are kept in the origin sections.
+- Renamed the extension from "Git Branch Pruner" to "Clean Git Branch" in the interface, the output channel and the documentation. Mentions of the original `monkeykjy/git-branch-pruner` fork are kept in the origin sections.
 - The webview view ID now matches the one contributed in `package.json` (`gitBranchCleanerView`), which was required for the view to appear after the manifest rename.
 
 ## [1.4.0] - 2026-10-19

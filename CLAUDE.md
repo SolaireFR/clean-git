@@ -1,6 +1,6 @@
-# Git Branch Cleaner
+# Clean Git Branch
 
-VS Code extension (fork of monkeykjy/git-branch-pruner, published as `SolaireFR.git-branch-cleaner`) that lists the local branches of the workspace repositories in a sidebar webview and deletes the selected ones.
+VS Code extension (fork of monkeykjy/git-branch-pruner, published as `SolaireFR.clean-git-branch`) that lists the local branches of the workspace repositories in a sidebar webview and deletes the selected ones.
 
 Commands, project structure and conventions are in the development guide, imported here:
 

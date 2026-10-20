@@ -1,6 +1,6 @@
 {
-  "name": "git-branch-cleaner",
-  "displayName": "Git Branch Cleaner",
+  "name": "clean-git-branch",
+  "displayName": "Clean Git Branch",
   "description": "Visually manage and clean up local Git branches that are no longer needed",
   "version": "1.4.2",
   "publisher": "SolaireFR",
@@ -31,10 +31,10 @@
   "icon": "media/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/SolaireFR/git-branch-cleaner"
+    "url": "https://github.com/SolaireFR/clean-git-branch"
   },
   "bugs": {
-    "url": "https://github.com/SolaireFR/git-branch-cleaner/issues"
+    "url": "https://github.com/SolaireFR/clean-git-branch/issues"
   },
   "capabilities": {
     "untrustedWorkspaces": {
@@ -50,7 +50,7 @@
       "activitybar": [
         {
           "id": "gitBranchCleaner",
-          "title": "Git Branch Cleaner",
+          "title": "Clean Git Branch",
           "icon": "media/icon.svg"
         }
       ]

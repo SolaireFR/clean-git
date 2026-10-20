@@ -20,7 +20,7 @@ const messages = {
 };
 
 /**
- * WebView provider for Git Branch Cleaner
+ * WebView provider for Clean Git Branch
  * Manages branch list display, refresh, and delete operations
  */
 export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {

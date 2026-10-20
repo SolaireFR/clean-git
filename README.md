@@ -1,8 +1,8 @@
-# Git Branch Cleaner
+# Clean Git Branch
 
 Clean up the local Git branches you no longer need, right from the VS Code sidebar.
 
-Over time, local branches pile up: merged features, branches deleted on the server, experiments. Git Branch Cleaner lists them with their status, shows which ones no longer exist on the remote, and deletes the ones you pick in one click.
+Over time, local branches pile up: merged features, branches deleted on the server, experiments. Clean Git Branch lists them with their status, shows which ones no longer exist on the remote, and deletes the ones you pick in one click.
 
 ## Features
 
@@ -16,14 +16,14 @@ Over time, local branches pile up: merged features, branches deleted on the serv
 
 ## Installation
 
-Download the `.vsix` file from the [GitHub releases](https://github.com/SolaireFR/git-branch-cleaner/releases), then in VS Code run **Extensions: Install from VSIX...** from the Command Palette (`Ctrl+Shift+P`).
+Download the `.vsix` file from the [GitHub releases](https://github.com/SolaireFR/clean-git-branch/releases), then in VS Code run **Extensions: Install from VSIX...** from the Command Palette (`Ctrl+Shift+P`).
 
 > If the original extension by monkeykjy is installed, uninstall it first to avoid two similar views.
 
 ## How to Use
 
 1. Open a folder or workspace containing one or more Git repositories
-2. Click the Git Branch Cleaner icon in the activity bar
+2. Click the Clean Git Branch icon in the activity bar
 3. Pick a repository in the selector (shown when there are several)
 4. Check the branches to delete and click **Delete N branches**
 
@@ -56,7 +56,7 @@ This project is a fork of [git-branch-pruner](https://github.com/monkeykjy/git-b
 
 ## Feedback
 
-Found a bug or have a suggestion? Open an issue on [GitHub](https://github.com/SolaireFR/git-branch-cleaner/issues).
+Found a bug or have a suggestion? Open an issue on [GitHub](https://github.com/SolaireFR/clean-git-branch/issues).
 
 Want to contribute or run it locally? See the [development guide](DEVELOPMENT.md).
 
