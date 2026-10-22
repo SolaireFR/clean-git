@@ -3,13 +3,14 @@
 All notable changes to the "clean-git" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
-## [1.5.0] - 2026-10-21
+## [2.0.0] - 2026-10-22
 
 ### Added
 
 - **Stashes** tab next to the **Branches** tab: lists the stashes of the selected repository (newest first, with their date) and drops the selected ones after confirmation. It updates automatically when stashes change, like the branch list.
 - Info button on each stash and each branch (except the main branch): opens a changes page in the view, with a back button. It lists the changed files collapsed, with their added/deleted lines; opening a file loads its diff, colored like in Git. Branches are compared with the main branch from their common ancestor.
 - Click a branch name to switch to that branch. When an interrupted cherry-pick or revert blocks the switch, a dialog offers to quit it (`git cherry-pick --quit`, keeps the changes already applied) and switch.
+- Screenshots of the branch list and of the changes page in the README.
 
 ### Changed
 
@@ -20,6 +21,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/) and versions 
 ### Changed
 
 - Renamed the extension from "Git Branch Pruner" to "Clean Git Branch" in the interface, the output channel and the documentation. Mentions of the original `monkeykjy/git-branch-pruner` fork are kept in the origin sections.
+- The extension identifier is now `SolaireFR.clean-git-branch` and the repository moved to `SolaireFR/clean-git-branch`: uninstall a previous `git-branch-cleaner` build to avoid two views.
+- Activity bar icon made more visible.
 - The webview view ID now matches the one contributed in `package.json` (`gitBranchCleanerView`), which was required for the view to appear after the manifest rename.
 
 ## [1.4.0] - 2026-10-19

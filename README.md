@@ -16,6 +16,18 @@ Over time, local branches and stashes pile up: merged features, branches deleted
 - 🔒 Current and main branches are protected from deletion
 - 🎨 Follows your VS Code theme
 
+## Screenshots
+
+**Branch list**: every local branch with its tags (`current`, `main`, `remote`, `local only`) and the date of its last commit.
+
+![Branch list with status tags and last commit dates](media/clean-git.png)
+
+Click the ⓘ icon on the right of a branch to see its changes. Click the ← arrow to go back to the list.
+
+**Branch changes**: the files changed on a branch compared to the main branch, with the diff of each file.
+
+![Changes of a branch compared to main](media/clean-git-diff.png)
+
 ## Installation
 
 Download the `.vsix` file from the [GitHub releases](https://github.com/SolaireFR/clean-git-branch/releases), then in VS Code run **Extensions: Install from VSIX...** from the Command Palette (`Ctrl+Shift+P`).

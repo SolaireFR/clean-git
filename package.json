@@ -2,7 +2,7 @@
   "name": "clean-git",
   "displayName": "Clean Git",
   "description": "Visually clean up local Git branches and stashes that are no longer needed",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "publisher": "SolaireFR",
   "author": {
     "name": "SolaireFR",
