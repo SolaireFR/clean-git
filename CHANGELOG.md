@@ -3,11 +3,20 @@
 All notable changes to the "clean-git-branch" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-10-22
+
+### Added
+
+- Improve docs and test valided.
+- Screenshots in the README.
+
 ## [1.4.2] - 2026-10-20
 
 ### Changed
 
 - Renamed the extension from "Git Branch Pruner" to "Clean Git Branch" in the interface, the output channel and the documentation. Mentions of the original `monkeykjy/git-branch-pruner` fork are kept in the origin sections.
+- The extension identifier is now `SolaireFR.clean-git-branch` and the repository moved to `SolaireFR/clean-git-branch`: uninstall a previous `git-branch-cleaner` build to avoid two views.
+- Activity bar icon made more visible.
 - The webview view ID now matches the one contributed in `package.json` (`gitBranchCleanerView`), which was required for the view to appear after the manifest rename.
 
 ## [1.4.0] - 2026-10-19

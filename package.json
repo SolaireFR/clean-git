@@ -2,7 +2,7 @@
   "name": "clean-git-branch",
   "displayName": "Clean Git Branch",
   "description": "Visually manage and clean up local Git branches that are no longer needed",
-  "version": "1.4.2",
+  "version": "2.0.0",
   "publisher": "SolaireFR",
   "author": {
     "name": "SolaireFR",
