@@ -3,7 +3,7 @@ import { BranchPrunerViewProvider } from './providers/BranchPrunerViewProvider';
 
 /**
  * Extension activation entry point
- * Registers the WebView provider for Clean Git Branch
+ * Registers the WebView provider for Clean Git
  */
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(

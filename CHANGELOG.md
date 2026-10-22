@@ -1,7 +1,19 @@
 # Change Log
 
-All notable changes to the "clean-git-branch" extension are documented in this file.
+All notable changes to the "clean-git" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
+
+## [1.5.0] - 2026-10-21
+
+### Added
+
+- **Stashes** tab next to the **Branches** tab: lists the stashes of the selected repository (newest first, with their date) and drops the selected ones after confirmation. It updates automatically when stashes change, like the branch list.
+- Info button on each stash and each branch (except the main branch): opens a changes page in the view, with a back button. It lists the changed files collapsed, with their added/deleted lines; opening a file loads its diff, colored like in Git. Branches are compared with the main branch from their common ancestor.
+- Click a branch name to switch to that branch. When an interrupted cherry-pick or revert blocks the switch, a dialog offers to quit it (`git cherry-pick --quit`, keeps the changes already applied) and switch.
+
+### Changed
+
+- Renamed the extension from "Clean Git Branch" to "Clean Git"; the extension ID is now `SolaireFR.clean-git` (uninstall `SolaireFR.clean-git-branch` to avoid two views; the install scripts do it). The view is now named "Branches and Stashes".
 
 ## [1.4.2] - 2026-10-20
 

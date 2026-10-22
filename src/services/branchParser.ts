@@ -1,4 +1,4 @@
-import { Branch } from '../types';
+import { Branch, ChangedFile, Stash } from '../types';
 
 /** `git for-each-ref` format: one NUL-separated record per line (NUL cannot appear in ref names) */
 export const REF_FORMAT = '%(refname)%00%(HEAD)%00%(upstream)%00%(symref)%00%(committerdate:unix)';
@@ -46,4 +46,47 @@ export function parseBranches(output: string): Branch[] {
       lastCommit: r.lastCommit,
     };
   });
+}
+
+/** `git stash list` format: same NUL-separated records as REF_FORMAT */
+export const STASH_FORMAT = '%gd%x00%H%x00%ct%x00%gs';
+
+/**
+ * Build the stash list from `git stash list --format=STASH_FORMAT` (newest first, as git lists them)
+ */
+export function parseStashes(output: string): Stash[] {
+  return output
+    .split('\n')
+    .filter((line) => line)
+    .map((line) => {
+      const [ref, hash, date, message] = line.split('\0');
+      return { ref, hash, message, date: Number(date) * 1000 };
+    });
+}
+
+/**
+ * Files of `git diff --numstat -z --no-renames` output (NUL-terminated: any path is kept as-is)
+ */
+export function parseNumstat(output: string): ChangedFile[] {
+  return output
+    .split('\0')
+    .filter((record) => record)
+    .map((record) => {
+      const [added, deleted, ...path] = record.split('\t');
+      // Binary files show "-" instead of line counts
+      return { path: path.join('\t'), added: Number(added) || 0, deleted: Number(deleted) || 0, binary: added === '-' };
+    });
+}
+
+/**
+ * Lines of a single-file `git diff` from the first hunk on (headers dropped); empty when there is no text diff (binary, mode change)
+ */
+export function parseDiff(output: string): string[] {
+  const lines = output.split('\n');
+  const start = lines.findIndex((line) => line.startsWith('@@'));
+  if (start < 0) {
+    return [];
+  }
+  // Drop the empty string after the final newline
+  return lines.slice(start, lines[lines.length - 1] === '' ? -1 : undefined);
 }

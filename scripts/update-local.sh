@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 step() { printf '\033[36m==> %s\033[0m\n' "$1"; }
 
 version=$(node -p "require('./package.json').version")
-vsix="clean-git-branch-$version.vsix"
+vsix="clean-git-$version.vsix"
 
 step 'Clean old packages'
 rm -f ./*.vsix
@@ -18,11 +18,14 @@ pnpm run build:esbuild --production
 step "Package $vsix"
 pnpm dlx @vscode/vsce package --no-dependencies --out "$vsix"
 
-# The original extension (monkeykjy) would add a duplicate view next to this one
-if code --list-extensions | grep -qx 'monkeykjy.git-branch-pruner'; then
-  step 'Uninstall original extension (monkeykjy)'
-  code --uninstall-extension monkeykjy.git-branch-pruner
-fi
+# The original extension (monkeykjy) and this one under its previous ID would add a duplicate view next to this one
+installed=$(code --list-extensions)
+for old in monkeykjy.git-branch-pruner SolaireFR.clean-git-branch; do
+  if grep -qix "$old" <<<"$installed"; then
+    step "Uninstall $old"
+    code --uninstall-extension "$old"
+  fi
+done
 
 step "Install $vsix"
 code --install-extension "$vsix" --force

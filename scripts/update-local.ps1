@@ -11,15 +11,18 @@ function Invoke-Step([string]$label, [scriptblock]$command) {
 }
 
 $version = node -p "require('./package.json').version"
-$vsix = "clean-git-branch-$version.vsix"
+$vsix = "clean-git-$version.vsix"
 
 Invoke-Step 'Clean old packages' { Remove-Item *.vsix -ErrorAction SilentlyContinue; $global:LASTEXITCODE = 0 }
 Invoke-Step 'Build' { pnpm run build:esbuild --production }
 Invoke-Step "Package $vsix" { pnpm dlx @vscode/vsce package --no-dependencies --out $vsix }
 
-# The original extension (monkeykjy) would add a duplicate view next to this one
-if (code --list-extensions | Select-String -SimpleMatch -Quiet 'monkeykjy.git-branch-pruner') {
-  Invoke-Step 'Uninstall original extension (monkeykjy)' { code --uninstall-extension monkeykjy.git-branch-pruner }
+# The original extension (monkeykjy) and this one under its previous ID would add a duplicate view next to this one
+$installed = code --list-extensions
+foreach ($old in 'monkeykjy.git-branch-pruner', 'SolaireFR.clean-git-branch') {
+  if ($installed | Select-String -SimpleMatch -Quiet $old) {
+    Invoke-Step "Uninstall $old" { code --uninstall-extension $old }
+  }
 }
 Invoke-Step "Install $vsix" { code --install-extension $vsix --force }
 

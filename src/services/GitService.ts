@@ -1,8 +1,8 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
-import { Branch } from '../types';
-import { parseBranches, REF_FORMAT } from './branchParser';
+import { Branch, ChangedFile, Stash } from '../types';
+import { parseBranches, parseDiff, parseNumstat, parseStashes, REF_FORMAT, STASH_FORMAT } from './branchParser';
 
 const execFileAsync = promisify(execFile);
 
@@ -27,11 +27,27 @@ interface GitExtension {
 const FETCH_TIMEOUT_MS = 60_000;
 
 /**
+ * `git diff` options: plain output whatever the user config, and never run a command configured
+ * by the repository (external diff tool, textconv filter)
+ */
+const DIFF_OPTIONS = ['--no-color', '--no-ext-diff', '--no-textconv', '--no-renames'];
+
+/**
+ * `git diff` revisions of a stash (against the commit it was created on, like `git stash show`)
+ * or of a branch since it left the main branch (`base...branch` diffs from their merge base)
+ * Full ref names and hashes never start with "-", so they cannot be read as options
+ */
+export const diffRange = {
+  stash: (hash: string) => [`${hash}^1`, hash],
+  branch: (base: string, branch: string) => [`refs/heads/${base}...refs/heads/${branch}`],
+};
+
+/**
  * Git operations service class
  * Runs git directly (no shell): arguments are never interpreted, so branch names cannot inject commands
  */
 export class GitService {
-  private readonly outputChannel = vscode.window.createOutputChannel('Clean Git Branch');
+  private readonly outputChannel = vscode.window.createOutputChannel('Clean Git');
   /** Git executable used by VS Code (honors the `git.path` setting), resolved with the repositories */
   private gitPath = 'git';
   private api?: Promise<GitApi | undefined>;
@@ -159,6 +175,66 @@ export class GitService {
       // git deletes what it can and reports the others: the refreshed list shows the outcome
       this.outputChannel.appendLine(`Delete error: ${error}`);
       vscode.window.showErrorMessage(`Some branches could not be deleted: ${(error as { stderr?: string }).stderr ?? error}`);
+    }
+  }
+
+  /**
+   * Get stashes, newest first (one git process)
+   */
+  public async getStashes(workingDir: string): Promise<Stash[]> {
+    return parseStashes(await this.git(['stash', 'list', `--format=${STASH_FORMAT}`], workingDir));
+  }
+
+  /**
+   * Files changed in a diff range (one git process)
+   * @param range `git diff` revisions, see diffRange; never starts with "-"
+   */
+  public async getChangedFiles(workingDir: string, range: string[]): Promise<ChangedFile[]> {
+    return parseNumstat(await this.git(['diff', ...DIFF_OPTIONS, '--numstat', '-z', ...range, '--'], workingDir));
+  }
+
+  /**
+   * Diff lines of one file in a diff range, from the first hunk on
+   * Literal pathspecs: a path with `*` or `:` matches only itself
+   */
+  public async getFileDiff(workingDir: string, range: string[], path: string): Promise<string[]> {
+    return parseDiff(await this.git(['--literal-pathspecs', 'diff', ...DIFF_OPTIONS, ...range, '--', path], workingDir));
+  }
+
+  /**
+   * Check out a local branch; git refuses (and nothing changes) when local changes would be overwritten
+   * or an operation (cherry-pick, revert, merge, rebase) is in progress: the error is thrown with git's stderr
+   */
+  public async switchBranch(workingDir: string, branch: string): Promise<void> {
+    await this.git(['switch', '--no-guess', '--end-of-options', branch], workingDir);
+  }
+
+  /**
+   * Forget an interrupted cherry-pick or revert: keeps the commits and changes already applied
+   * (unlike `--abort`, which resets them)
+   */
+  public async quitSequencer(workingDir: string, command: 'cherry-pick' | 'revert'): Promise<void> {
+    await this.git([command, '--quit'], workingDir);
+  }
+
+  /**
+   * Drop stashes identified by their commit hash
+   * `git stash drop` takes one stash at a time and indexes shift after each drop:
+   * resolve the current refs from the hashes, then drop from the oldest (highest index) to the newest
+   */
+  public async dropStashes(workingDir: string, hashes: string[]): Promise<void> {
+    try {
+      const refs = (await this.getStashes(workingDir))
+        .filter((stash) => hashes.includes(stash.hash))
+        .map((stash) => stash.ref)
+        .reverse();
+      for (const ref of refs) {
+        await this.git(['stash', 'drop', '-q', ref], workingDir);
+      }
+      vscode.window.showInformationMessage(`Dropped ${refs.length} stash(es).`);
+    } catch (error) {
+      this.outputChannel.appendLine(`Drop error: ${error}`);
+      vscode.window.showErrorMessage(`Some stashes could not be dropped: ${(error as { stderr?: string }).stderr ?? error}`);
     }
   }
 

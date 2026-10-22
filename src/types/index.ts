@@ -20,3 +20,30 @@ export interface Branch {
   /** Committer date of the last commit (ms since epoch) */
   lastCommit: number;
 }
+
+/**
+ * Git stash entry
+ */
+export interface Stash {
+  /** Reflog selector, e.g. `stash@{0}`: shifts when a newer stash is dropped */
+  ref: string;
+  /** Commit hash of the stash: stable, identifies it across refreshes */
+  hash: string;
+  /** Stash message, e.g. `WIP on main: 1a2b3c4 subject` */
+  message: string;
+  /** Date the stash was created (ms since epoch) */
+  date: number;
+}
+
+/**
+ * File changed by a stash or a branch
+ */
+export interface ChangedFile {
+  path: string;
+  added: number;
+  deleted: number;
+  binary: boolean;
+}
+
+/** Tabs of the view */
+export type Tab = 'branches' | 'stashes';

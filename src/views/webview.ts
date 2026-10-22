@@ -1,12 +1,16 @@
 import { randomBytes } from 'crypto';
 import { version } from '../../package.json';
-import { Branch } from '../types';
+import { Branch, ChangedFile, Stash, Tab } from '../types';
 
 const messages = {
-  description: 'Clean up local Git branches.',
-  refreshTitle: 'Refresh branches',
+  backTitle: 'Back',
+  noChanges: 'No changes',
+  loading: 'Loading...',
+  description: 'Clean up local Git branches and stashes.',
+  refreshTitle: 'Refresh',
   deleteSelectedButton: 'Delete selected',
   noBranches: 'No branches found',
+  noStashes: 'No stashes found',
 };
 
 export interface RepositoryOption {
@@ -27,9 +31,18 @@ const escapeHtml = (value: string) =>
 const refreshIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M12.5 1.5v3h-3" />
 </svg>`;
-const branchIcon = `<svg class="branch-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+const branchIcon = `<svg class="item-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
   <circle cx="5" cy="3.5" r="1.5" /><circle cx="5" cy="12.5" r="1.5" /><circle cx="11" cy="5" r="1.5" />
   <path d="M5 5v6M11 6.5c0 2.5-6 1.5-6 4.5" />
+</svg>`;
+const stashIcon = `<svg class="item-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+  <path d="M2.5 6.5h11v6.5h-11zM3.5 6.5l1-3.5h7l1 3.5M6 9h4" />
+</svg>`;
+const infoIcon = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true">
+  <circle cx="8" cy="8" r="6.5" /><path d="M8 7v4.5M8 4.5v.01" />
+</svg>`;
+const backIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
 </svg>`;
 
 // Colors only come from VS Code theme variables so the view follows any theme (light, dark, high contrast)
@@ -59,6 +72,27 @@ const styles = `
     flex-shrink: 0;
     font-size: 11px;
     opacity: 0.8;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  }
+  .tab {
+    padding: 4px 2px;
+    color: var(--vscode-panelTitle-inactiveForeground);
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab:hover:not(:disabled) {
+    color: var(--vscode-panelTitle-activeForeground);
+  }
+  .tab[aria-selected='true'] {
+    color: var(--vscode-panelTitle-activeForeground);
+    border-bottom-color: var(--vscode-panelTitle-activeBorder);
   }
 
   .toolbar {
@@ -126,6 +160,10 @@ const styles = `
     color: var(--vscode-icon-foreground);
     background: transparent;
     border-radius: 5px;
+  }
+  .icon-button.small {
+    width: 20px;
+    height: 20px;
   }
   .icon-button:hover:not(:disabled) {
     background-color: var(--vscode-toolbar-hoverBackground);
@@ -203,16 +241,29 @@ const styles = `
     border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
     color: var(--vscode-descriptionForeground);
   }
-  .branch-list {
+  .item-list {
     margin: 0 0 12px;
     padding: 0;
     list-style: none;
   }
-  .branch-icon {
+  .item-icon {
     flex-shrink: 0;
     color: var(--vscode-descriptionForeground);
   }
-  .branch-name {
+  .switch-button {
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    text-align: left;
+  }
+  .switch-button:hover:not(:disabled) {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+  }
+  .switch-button:disabled {
+    opacity: 1;
+  }
+  .item-name {
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -268,33 +319,107 @@ const styles = `
     background-color: var(--vscode-inputValidation-errorBackground);
     border-left: 2px solid var(--vscode-inputValidation-errorBorder);
   }
+
+  .changes-header {
+    display: flex;
+    gap: 8px;
+  }
+  .stat {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .added { color: var(--vscode-gitDecoration-addedResourceForeground); }
+  .stat .deleted { color: var(--vscode-gitDecoration-deletedResourceForeground); }
+  .file-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .file-list summary {
+    list-style: none;
+  }
+  .file-list summary::-webkit-details-marker {
+    display: none;
+  }
+  /* Chevron: points right when collapsed, down when open */
+  .file-list summary::before {
+    content: '';
+    flex-shrink: 0;
+    width: 5px;
+    height: 5px;
+    margin: 0 2px 0 1px;
+    border-right: 1px solid var(--vscode-icon-foreground);
+    border-bottom: 1px solid var(--vscode-icon-foreground);
+    transform: rotate(-45deg);
+  }
+  .file-list details[open] > summary::before {
+    transform: rotate(45deg);
+  }
+  .file-name {
+    flex-shrink: 0;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-dir {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+  }
+  .diff {
+    margin: 2px 0 6px;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    overflow-x: auto;
+    font-family: var(--vscode-editor-font-family);
+    font-size: var(--vscode-editor-font-size);
+    background-color: var(--vscode-editor-background);
+  }
+  .diff-lines {
+    min-width: max-content;
+  }
+  .diff-lines > div {
+    padding: 0 6px;
+    white-space: pre;
+  }
+  .diff-lines .added { background-color: var(--vscode-diffEditor-insertedLineBackground, var(--vscode-diffEditor-insertedTextBackground)); }
+  .diff-lines .deleted { background-color: var(--vscode-diffEditor-removedLineBackground, var(--vscode-diffEditor-removedTextBackground)); }
+  .diff-lines .hunk { color: var(--vscode-descriptionForeground); }
 `;
 
 // Event listeners instead of inline handlers: the CSP only lets the nonce'd script run
-const branchListScript = `
+const listScript = `
   const vscode = acquireVsCodeApi();
   const deleteBtn = document.getElementById('deleteBtn');
   const selectAll = document.getElementById('selectAllCheckbox');
-  const selectable = () => Array.from(document.querySelectorAll('.branch-checkbox:not([data-locked])'));
+  const selectable = () => Array.from(document.querySelectorAll('.item-checkbox:not([data-locked])'));
   let controlsEnabled = document.body.dataset.busy !== 'true';
-  const repository = document.querySelector('.branch-list')?.dataset.repository;
+  const list = document.querySelector('.item-list')?.dataset;
+  // One saved selection per tab and repository
+  const listKey = list && list.noun + ':' + list.repository;
 
   // Keep the selection across re-renders (Git changes detected, view hidden then shown)
   const saved = vscode.getState();
-  if (repository && saved?.repository === repository) {
-    selectable().forEach((box) => (box.checked = saved.checked.includes(box.dataset.branch)));
+  if (listKey && saved?.listKey === listKey) {
+    selectable().forEach((box) => (box.checked = saved.checked.includes(box.dataset.id)));
   }
 
   // Delete button label and "select all" state follow the selection
   function updateSelection() {
     const boxes = selectable();
-    const checked = boxes.filter((box) => box.checked).map((box) => box.dataset.branch);
+    const checked = boxes.filter((box) => box.checked).map((box) => box.dataset.id);
     const count = checked.length;
-    if (repository) {
-      vscode.setState({ repository, checked });
+    if (listKey) {
+      vscode.setState({ listKey, checked });
     }
     if (deleteBtn) {
-      deleteBtn.textContent = count ? 'Delete ' + count + ' branch' + (count > 1 ? 'es' : '') : '${messages.deleteSelectedButton}';
+      deleteBtn.textContent = count ? list.verb + ' ' + count + ' ' + list.noun + (count > 1 ? 'es' : '') : '${messages.deleteSelectedButton}';
       deleteBtn.disabled = !controlsEnabled || count === 0;
     }
     if (selectAll) {
@@ -334,16 +459,41 @@ const branchListScript = `
   });
 
   document.addEventListener('change', (event) => {
-    if (event.target.classList.contains('branch-checkbox')) {
+    if (event.target.classList.contains('item-checkbox')) {
       updateSelection();
     }
   });
 
-  deleteBtn?.addEventListener('click', () => {
-    const branches = selectable().filter((box) => box.checked).map((box) => box.dataset.branch);
-    if (branches.length) {
+  document.querySelectorAll('.tab').forEach((tab) =>
+    tab.addEventListener('click', () => {
+      if (tab.getAttribute('aria-selected') !== 'true') {
+        setControlsEnabled(false);
+        vscode.postMessage({ type: 'selectTab', tab: tab.dataset.tab });
+      }
+    })
+  );
+
+  document.querySelectorAll('.info-button').forEach((button) =>
+    button.addEventListener('click', (event) => {
+      event.preventDefault(); // inside the row label: do not toggle the checkbox
       setControlsEnabled(false);
-      vscode.postMessage({ type: 'confirmDelete', branches });
+      vscode.postMessage({ type: 'showInfo', item: button.dataset.id });
+    })
+  );
+
+  document.querySelectorAll('.switch-button').forEach((button) =>
+    button.addEventListener('click', (event) => {
+      event.preventDefault(); // inside the row label: do not toggle the checkbox
+      setControlsEnabled(false);
+      vscode.postMessage({ type: 'switchBranch', item: button.dataset.id });
+    })
+  );
+
+  deleteBtn?.addEventListener('click', () => {
+    const items = selectable().filter((box) => box.checked).map((box) => box.dataset.id);
+    if (items.length) {
+      setControlsEnabled(false);
+      vscode.postMessage({ type: 'confirmDelete', items });
     }
   });
 
@@ -380,7 +530,7 @@ export function getErrorContent(errorMessage: string): string {
       <div class="error" role="alert">${escapeHtml(errorMessage)}</div>
       ${refreshButton()}
     </div>`,
-    branchListScript
+    listScript
   );
 }
 
@@ -393,27 +543,52 @@ export function getLoadingContent(message: string): string {
   `);
 }
 
+
+/** One row of a list, values not escaped yet */
+interface Row {
+  id: string;
+  label: string;
+  /** Pre-rendered HTML */
+  tags?: string;
+  date: number;
+  /** Cannot be selected for deletion */
+  locked?: boolean;
+  /** Show an info button that opens a summary of the item */
+  info?: boolean;
+  /** The name is a button that checks out the branch */
+  switchable?: boolean;
+}
+
+const tabLabels: Record<Tab, string> = { branches: 'Branches', stashes: 'Stashes' };
+const lists: Record<Tab, { noun: string; verb: string; icon: string; empty: string }> = {
+  branches: { noun: 'branch', verb: 'Delete', icon: branchIcon, empty: messages.noBranches },
+  stashes: { noun: 'stash', verb: 'Drop', icon: stashIcon, empty: messages.noStashes },
+};
+
 /**
+ * Tabs, repository picker, then the selectable rows of the active tab
  * @param busy Render every control disabled (an operation such as a fetch is still running)
  */
-export function getBranchListContent(
-  branches: Branch[],
+function listContent(
+  tab: Tab,
+  rows: Row[],
   repositories: RepositoryOption[],
   selectedRepository: string,
-  busy = false
+  busy: boolean
 ): string {
   const disabled = (locked = false) => `${locked ? 'data-locked' : ''} ${busy || locked ? 'disabled' : ''}`;
   const selected = repositories.find((repository) => repository.path === selectedRepository);
-  const hasDeletable = branches.some((branch) => !branch.isMainBranch && !branch.isCurrentBranch);
+  const { noun, verb, icon, empty } = lists[tab];
+  const plural = (count: number) => `${noun}${count > 1 ? 'es' : ''}`;
 
-  const tags = (branch: Branch) =>
-    [
-      branch.isCurrentBranch ? '<span class="tag current">current</span>' : '',
-      branch.isMainBranch ? '<span class="tag main">main</span>' : '',
-      branch.exists.remote
-        ? '<span class="tag remote" title="Exists on the remote">remote</span>'
-        : '<span class="tag local-only" title="No matching branch on the remote">local only</span>',
-    ].join('');
+  const tabs = `<div class="tabs" role="tablist">
+      ${(Object.keys(tabLabels) as Tab[])
+        .map(
+          (name) =>
+            `<button class="tab" role="tab" data-tab="${name}" aria-selected="${name === tab}" ${disabled()}>${tabLabels[name]}</button>`
+        )
+        .join('')}
+    </div>`;
 
   const repositoryPicker =
     repositories.length > 1
@@ -431,46 +606,211 @@ export function getBranchListContent(
         </div>`
       : `<span class="repo-name" title="${escapeHtml(selectedRepository)}">${escapeHtml(selected?.label ?? '')}</span>`;
 
-  const branchList = branches.length
+  const list = rows.length
     ? `
       <label class="row list-header">
-        <input type="checkbox" id="selectAllCheckbox" aria-label="Select all branches" ${disabled(!hasDeletable)}>
-        <span>${branches.length} branch${branches.length > 1 ? 'es' : ''}</span>
+        <input type="checkbox" id="selectAllCheckbox" aria-label="Select all ${noun}es" ${disabled(rows.every((row) => row.locked))}>
+        <span>${rows.length} ${plural(rows.length)}</span>
       </label>
-      <ul class="branch-list" data-repository="${escapeHtml(selectedRepository)}">
-        ${branches
-          .map((branch) => {
-            const locked = branch.isMainBranch || branch.isCurrentBranch;
-            const name = escapeHtml(branch.name);
-            const date = new Date(branch.lastCommit);
+      <ul class="item-list" data-repository="${escapeHtml(selectedRepository)}" data-noun="${noun}" data-verb="${verb}">
+        ${rows
+          .map((row) => {
+            const id = escapeHtml(row.id);
+            const label = escapeHtml(row.label);
+            const date = new Date(row.date);
             const pad = (value: number) => String(value).padStart(2, '0');
             // e.g. "lundi 25 octobre 2026 à 18:03:11"
             const fullDate = date.toLocaleString('fr-FR', { dateStyle: 'full', timeStyle: 'medium' });
             return `
               <li>
-                <label class="row ${locked ? 'locked' : ''}" title="${name}">
-                  <input type="checkbox" class="branch-checkbox" data-branch="${name}" aria-label="${name}" ${disabled(locked)}>
-                  ${branchIcon}
-                  <span class="branch-name">${name}</span>
-                  <span class="tags">${tags(branch)}</span>
+                <label class="row ${row.locked ? 'locked' : ''}" title="${label}">
+                  <input type="checkbox" class="item-checkbox" data-id="${id}" aria-label="${label}" ${disabled(row.locked)}>
+                  ${icon}
+                  ${
+                    row.switchable
+                      ? `<button class="item-name switch-button" data-id="${id}" title="Switch to ${label}" ${disabled()}>${label}</button>`
+                      : `<span class="item-name">${label}</span>`
+                  }
+                  ${row.tags ? `<span class="tags">${row.tags}</span>` : ''}
                   <span class="commit-date" title="${escapeHtml(fullDate)}">${pad(date.getMonth() + 1)}-${pad(date.getDate())}</span>
+                  ${
+                    row.info
+                      ? `<button class="icon-button small info-button" data-id="${id}" title="Show changes" aria-label="Show changes of ${label}" ${disabled()}>${infoIcon}</button>`
+                      : ''
+                  }
                 </label>
               </li>`;
           })
           .join('')}
       </ul>
       <button id="deleteBtn" class="primary-button" disabled>${messages.deleteSelectedButton}</button>`
-    : `<div class="empty">${messages.noBranches}</div>`;
+    : `<div class="empty">${empty}</div>`;
 
   return page(
     `
+    ${tabs}
     <div class="toolbar">
       ${repositoryPicker}
       ${refreshButton(disabled())}
     </div>
-    ${branchList}
+    ${list}
   `,
-    branchListScript,
+    listScript,
     busy
+  );
+}
+
+export function getBranchListContent(
+  branches: Branch[],
+  repositories: RepositoryOption[],
+  selectedRepository: string,
+  busy = false
+): string {
+  const tags = (branch: Branch) =>
+    [
+      branch.isCurrentBranch ? '<span class="tag current">current</span>' : '',
+      branch.isMainBranch ? '<span class="tag main">main</span>' : '',
+      branch.exists.remote
+        ? '<span class="tag remote" title="Exists on the remote">remote</span>'
+        : '<span class="tag local-only" title="No matching branch on the remote">local only</span>',
+    ].join('');
+
+  // Changes are summarized against the main branch: no info without one, nor on the main branch itself
+  const hasMain = branches.some((branch) => branch.isMainBranch);
+  const rows = branches.map((branch) => ({
+    id: branch.name,
+    label: branch.name,
+    tags: tags(branch),
+    date: branch.lastCommit,
+    locked: branch.isMainBranch || branch.isCurrentBranch,
+    info: hasMain && !branch.isMainBranch,
+    switchable: !branch.isCurrentBranch,
+  }));
+  return listContent('branches', rows, repositories, selectedRepository, busy);
+}
+
+export function getStashListContent(
+  stashes: Stash[],
+  repositories: RepositoryOption[],
+  selectedRepository: string,
+  busy = false
+): string {
+  const rows = stashes.map((stash) => ({
+    id: stash.hash,
+    label: `${stash.ref}: ${stash.message}`,
+    date: stash.date,
+    info: true,
+  }));
+  return listContent('stashes', rows, repositories, selectedRepository, busy);
+}
+
+// Diffs are inserted with textContent: file content is never parsed as HTML
+const changesScript = `
+  const vscode = acquireVsCodeApi();
+  const back = document.getElementById('backBtn');
+
+  back.addEventListener('click', () => {
+    back.disabled = true;
+    vscode.postMessage({ type: 'back' });
+  });
+
+  // A file's diff is loaded the first time it is opened
+  document.querySelectorAll('.file-list details').forEach((details) =>
+    details.addEventListener('toggle', () => {
+      if (details.open && !details.dataset.loaded) {
+        details.dataset.loaded = 'true';
+        vscode.postMessage({ type: 'loadDiff', index: Number(details.dataset.index) });
+      }
+    })
+  );
+
+  function element(className, text) {
+    const node = document.createElement('div');
+    node.className = className;
+    node.textContent = text;
+    return node;
+  }
+
+  function showDiff(data) {
+    const diff = document.querySelector('details[data-index="' + data.index + '"] .diff');
+    if (!diff) {
+      return;
+    }
+    if (data.error) {
+      return diff.replaceChildren(element('error', data.error));
+    }
+    if (!data.lines.length) {
+      return diff.replaceChildren(element('empty', 'No text changes (binary file or mode change)'));
+    }
+    const lines = document.createElement('div');
+    lines.className = 'diff-lines';
+    for (const line of data.lines) {
+      const kind = line[0] === '+' ? 'added' : line[0] === '-' ? 'deleted' : line[0] === '@' || line[0] === '\\\\' ? 'hunk' : '';
+      lines.append(element(kind, line || ' '));
+    }
+    if (data.hidden) {
+      lines.append(element('hunk', '... ' + data.hidden + ' more lines not shown'));
+    }
+    diff.replaceChildren(lines);
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.data.type === 'setControlsState') {
+      back.disabled = !event.data.enabled;
+    } else if (event.data.type === 'diff') {
+      showDiff(event.data);
+    }
+  });
+`;
+
+const stat = (change: { added: number; deleted: number }) =>
+  `<span class="stat"><span class="added">+${change.added}</span> <span class="deleted">-${change.deleted}</span></span>`;
+
+/**
+ * Changes page of a stash or a branch: one collapsed row per file, its diff loaded on open
+ * @param title Stash or branch name
+ */
+export function getChangesContent(title: string, files: ChangedFile[]): string {
+  const total = files.reduce((sum, file) => ({ added: sum.added + file.added, deleted: sum.deleted + file.deleted }), {
+    added: 0,
+    deleted: 0,
+  });
+
+  const list = files.length
+    ? `
+      <div class="row list-header changes-header">
+        <span class="item-name">${files.length} file${files.length > 1 ? 's' : ''} changed</span>
+        ${stat(total)}
+      </div>
+      <ul class="file-list">
+        ${files
+          .map((file, index) => {
+            const slash = file.path.lastIndexOf('/');
+            const filePath = escapeHtml(file.path);
+            return `
+              <li>
+                <details data-index="${index}">
+                  <summary class="row" title="${filePath}">
+                    <span class="file-name">${escapeHtml(file.path.slice(slash + 1))}</span>
+                    <span class="file-dir">${escapeHtml(file.path.slice(0, Math.max(slash, 0)))}</span>
+                    ${file.binary ? '<span class="stat">binary</span>' : stat(file)}
+                  </summary>
+                  <div class="diff"><div class="status" role="status"><div class="spinner"></div><span>${messages.loading}</span></div></div>
+                </details>
+              </li>`;
+          })
+          .join('')}
+      </ul>`
+    : `<div class="empty">${messages.noChanges}</div>`;
+
+  return page(
+    `
+    <div class="toolbar">
+      <button id="backBtn" class="icon-button" title="${messages.backTitle}" aria-label="${messages.backTitle}">${backIcon}</button>
+      <span class="repo-name" title="${escapeHtml(title)}">${escapeHtml(title)}</span>
+    </div>
+    ${list}
+  `,
+    changesScript
   );
 }
