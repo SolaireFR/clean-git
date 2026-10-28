@@ -33,6 +33,12 @@ const messages = {
   sequencerDetail: (command: string) =>
     `Git cannot switch branch until it is finished. Quit it and switch?\n\nQuitting keeps the commits and changes already applied, it only forgets the interrupted ${command} (git ${command} --quit). Conflicts still unresolved would keep blocking the switch.`,
   sequencerButton: 'Quit and Switch',
+  localChanges: (branch: string) => `You have uncommitted changes. Switch to ${branch}?`,
+  localChangesDetail:
+    'Bring: keep the changes on the new branch (Git refuses if they conflict with it).\nStash: save them in a new stash, then switch.\nDiscard: lose them, then switch (cannot be undone; untracked files are kept).',
+  bringButton: 'Bring Changes',
+  stashButton: 'Stash and Switch',
+  discardButton: 'Discard and Switch',
 };
 
 /** Diff lines sent per file: enough to read, bounded for huge generated files */
@@ -379,6 +385,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
 
   /**
    * Check out a branch, then show the new current branch right away (same as after a delete)
+   * Uncommitted changes: ask to bring, stash or discard them first
    * An interrupted cherry-pick or revert blocks the switch: offer to quit it first
    */
   private async switchBranch(branch: string) {
@@ -386,8 +393,25 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
     if (!this.view || !repository) {
       return;
     }
+    let discard = false;
     try {
-      await this.gitService.switchBranch(repository, branch);
+      if (await this.gitService.hasLocalChanges(repository)) {
+        const choice = await vscode.window.showWarningMessage(
+          messages.localChanges(branch),
+          { modal: true, detail: messages.localChangesDetail },
+          messages.bringButton,
+          messages.stashButton,
+          messages.discardButton
+        );
+        if (!choice) {
+          return;
+        }
+        if (choice === messages.stashButton) {
+          await this.gitService.stash(repository, `Clean Git: before switching to ${branch}`);
+        }
+        discard = choice === messages.discardButton;
+      }
+      await this.gitService.switchBranch(repository, branch, discard);
     } catch (error) {
       // e.g. "fatal: cannot switch branch while cherry-picking"
       const operation = /while (cherry-picking|reverting)/.exec(stderrOf(error))?.[1];
@@ -403,7 +427,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       ) {
         try {
           await this.gitService.quitSequencer(repository, command);
-          await this.gitService.switchBranch(repository, branch);
+          await this.gitService.switchBranch(repository, branch, discard);
         } catch (retryError) {
           vscode.window.showErrorMessage(`${messages.switchFailed(branch)} ${stderrOf(retryError)}`);
         }

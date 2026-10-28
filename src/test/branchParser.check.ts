@@ -126,6 +126,20 @@ try {
   git(clone, 'switch', '-q', '--no-guess', '--end-of-options', 'feature/kept');
   assert.strictEqual(git(clone, 'branch', '--show-current').trim(), 'feature/kept');
 
+  // Uncommitted changes before a switch: same calls as GitService.hasLocalChanges / stash / switchBranch(discard)
+  const hasLocalChanges = () => git(clone, 'status', '--porcelain', '--untracked-files=no').trim() !== '';
+  writeFileSync(join(clone, 'untracked.txt'), 'u\n');
+  assert.strictEqual(hasLocalChanges(), false, 'untracked files do not count');
+  writeFileSync(join(clone, globName), 'changed\n');
+  assert.strictEqual(hasLocalChanges(), true);
+  git(clone, 'stash', 'push', '-q', '-m', 'Clean Git: before switching to develop');
+  assert.strictEqual(hasLocalChanges(), false, 'stashed');
+  assert.match(git(clone, 'stash', 'list'), /Clean Git: before switching to develop/);
+  writeFileSync(join(clone, globName), 'changed again\n');
+  git(clone, 'switch', '-q', '--no-guess', '--discard-changes', '--end-of-options', 'develop');
+  assert.strictEqual(hasLocalChanges(), false, 'discarded');
+  assert.strictEqual(git(clone, 'branch', '--show-current').trim(), 'develop');
+
   console.log('branchParser (branches, stashes, changes, switch): ok');
 } finally {
   rmSync(root, { recursive: true, force: true });

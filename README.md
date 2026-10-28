@@ -11,7 +11,7 @@ Over time, local branches and stashes pile up: merged features, branches deleted
 - 📦 **Stashes** tab: list stashes with their date, browse their changes file by file, and drop several at once
 - 🗂️ Repository selector for multi-root workspaces and nested repositories
 - ⚡ Automatic update when Git changes (checkout, new or deleted branch, stash, fetch…), without polling
-- 🔀 Switch branch by clicking its name, browse its changes against the main branch file by file
+- 🔀 Browse a branch's changes against the main branch file by file by clicking its name, switch branch with the → arrow
 - 🗑️ Delete several local branches at once, with confirmation
 - 🔒 Current and main branches are protected from deletion
 - 🎨 Follows your VS Code theme
@@ -22,7 +22,7 @@ Over time, local branches and stashes pile up: merged features, branches deleted
 
 ![Branch list with status tags and last commit dates](media/clean-git.png)
 
-Click the ⓘ icon on the right of a branch to see its changes. Click the ← arrow to go back to the list.
+Click a branch name to see its changes. Click the ← arrow to go back to the list.
 
 **Branch changes**: the files changed on a branch compared to the main branch, with the diff of each file.
 
@@ -46,11 +46,11 @@ On the Branches tab, click the refresh icon to fetch the remote and update the r
 
 Branches are sorted by last commit, newest first. The date of the last commit (`MM-DD`) is shown on the right of the tags; hover it for the full date and time.
 
-Click a branch name to switch to it (`git switch`; Git refuses if your local changes would be overwritten). If an interrupted cherry-pick or revert blocks the switch, Clean Git offers to quit it first (`git cherry-pick --quit` / `git revert --quit`): the changes already applied are kept, only the interrupted operation is forgotten.
+Click the → arrow on the right of a branch to switch to it (`git switch`). If you have uncommitted changes, Clean Git asks what to do with them: **Bring Changes** (keep them on the new branch; Git refuses if they would be overwritten), **Stash and Switch** (save them in a new stash first), or **Discard and Switch** (lose them; untracked files are kept). If an interrupted cherry-pick or revert blocks the switch, Clean Git offers to quit it first (`git cherry-pick --quit` / `git revert --quit`): the changes already applied are kept, only the interrupted operation is forgotten.
 
-Click the ⓘ button on the right of a branch to see the changes it made since it left the main branch (compared from their common ancestor, so later commits on the main branch are not counted). The view shows the list of changed files, collapsed, with their added and deleted lines; open a file to load its diff. Click the back arrow to return to the list.
+Click a branch name to see the changes it made since it left the main branch (compared from their common ancestor, so later commits on the main branch are not counted). The view shows the list of changed files, collapsed, with their added and deleted lines; open a file to load its diff. Click the back arrow to return to the list.
 
-Stashes are listed newest first as `stash@{N}: message`, with their creation date. Click the ⓘ button on the right of a stash to see its changes the same way. Untracked files saved with `git stash -u` are not included. Very long diffs are cut after 5000 lines.
+Stashes are listed newest first as `stash@{N}: message`, with their creation date. Click a stash name to see its changes the same way. Untracked files saved with `git stash -u` are not included. Very long diffs are cut after 5000 lines.
 
 ## Branch Tags
 

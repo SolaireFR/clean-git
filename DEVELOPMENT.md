@@ -26,7 +26,7 @@ pnpm install
 | `pnpm run build:esbuild` | Bundle `src/extension.ts` into `dist/extension.js` (add `--production` to minify) |
 | `pnpm run watch` | Rebuild on every change (used by `F5`) |
 | `npx tsc --noEmit -p .` | Typecheck |
-| `pnpm run test:unit` | Parser checks plus the git calls (delete, drop, diff, switch blocked by a cherry-pick), on a temporary Git repository (plain Node, no VS Code) |
+| `pnpm run test:unit` | Parser checks plus the git calls (delete, drop, diff, switch blocked by a cherry-pick, stash or discard before a switch), on a temporary Git repository (plain Node, no VS Code) |
 | `scripts/update-local.ps1` / `scripts/update-local.sh` | Build, package and install the dev version in your VS Code |
 
 ## Project Structure
@@ -52,7 +52,7 @@ package.json                             Manifest: version, view contributions, 
 
 Communication between the webview and the extension:
 
-- webview → extension: `postMessage` with `refresh`, `selectRepository`, `selectTab`, `confirmDelete` (`items`: branch names, or stash hashes on the Stashes tab, checked against the displayed list) `showInfo` (`item`: a displayed stash hash, or a displayed non-main branch; replaces the list with the changes page), `switchBranch` (`item`: a displayed branch other than the current one; offers `cherry-pick`/`revert --quit` when git refuses because one is in progress)
+- webview → extension: `postMessage` with `refresh`, `selectRepository`, `selectTab`, `confirmDelete` (`items`: branch names, or stash hashes on the Stashes tab, checked against the displayed list) `showInfo` (clicked item name; `item`: a displayed stash hash, or a displayed non-main branch; replaces the list with the changes page), `switchBranch` (arrow button on the right of a branch; `item`: a displayed branch other than the current one; with uncommitted tracked changes, asks to bring, stash or discard them; offers `cherry-pick`/`revert --quit` when git refuses because one is in progress)
 - Changes page → extension: `loadDiff` (`index` of a file of the page, checked against the stored list) and `back`; extension → page: a `diff` message with the lines (inserted with `textContent`), capped at 5000. While the page is shown, Git change syncs are skipped; going back re-reads the list
 - Diffs use `diffRange` (`hash^1 hash` for a stash, `refs/heads/main...refs/heads/branch` for a branch) with `--no-ext-diff --no-textconv` (no command configured by the repository runs) and `--literal-pathspecs`
 - Stashes are identified by commit hash, not by `stash@{N}` (indexes shift): `dropStashes` resolves the current refs and drops from the highest index

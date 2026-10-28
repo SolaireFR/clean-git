@@ -38,8 +38,8 @@ const branchIcon = `<svg class="item-icon" width="16" height="16" viewBox="0 0 1
 const stashIcon = `<svg class="item-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
   <path d="M2.5 6.5h11v6.5h-11zM3.5 6.5l1-3.5h7l1 3.5M6 9h4" />
 </svg>`;
-const infoIcon = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" aria-hidden="true">
-  <circle cx="8" cy="8" r="6.5" /><path d="M8 7v4.5M8 4.5v.01" />
+const switchIcon = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M3 8h10M8.5 3.5 13 8l-4.5 4.5" />
 </svg>`;
 const backIcon = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
   <path d="M13 8H3M7.5 3.5 3 8l4.5 4.5" />
@@ -250,17 +250,17 @@ const styles = `
     flex-shrink: 0;
     color: var(--vscode-descriptionForeground);
   }
-  .switch-button {
+  .info-button {
     padding: 0;
     color: inherit;
     background: transparent;
     text-align: left;
   }
-  .switch-button:hover:not(:disabled) {
+  .info-button:hover:not(:disabled) {
     color: var(--vscode-textLink-activeForeground);
     text-decoration: underline;
   }
-  .switch-button:disabled {
+  .info-button:disabled {
     opacity: 1;
   }
   .item-name {
@@ -554,9 +554,9 @@ interface Row {
   date: number;
   /** Cannot be selected for deletion */
   locked?: boolean;
-  /** Show an info button that opens a summary of the item */
+  /** The name is a button that opens the changes page of the item */
   info?: boolean;
-  /** The name is a button that checks out the branch */
+  /** Show an arrow button that checks out the branch */
   switchable?: boolean;
 }
 
@@ -628,15 +628,15 @@ function listContent(
                   <input type="checkbox" class="item-checkbox" data-id="${id}" aria-label="${label}" ${disabled(row.locked)}>
                   ${icon}
                   ${
-                    row.switchable
-                      ? `<button class="item-name switch-button" data-id="${id}" title="Switch to ${label}" ${disabled()}>${label}</button>`
+                    row.info
+                      ? `<button class="item-name info-button" data-id="${id}" title="Show changes of ${label}" ${disabled()}>${label}</button>`
                       : `<span class="item-name">${label}</span>`
                   }
                   ${row.tags ? `<span class="tags">${row.tags}</span>` : ''}
                   <span class="commit-date" title="${escapeHtml(fullDate)}">${pad(date.getMonth() + 1)}-${pad(date.getDate())}</span>
                   ${
-                    row.info
-                      ? `<button class="icon-button small info-button" data-id="${id}" title="Show changes" aria-label="Show changes of ${label}" ${disabled()}>${infoIcon}</button>`
+                    row.switchable
+                      ? `<button class="icon-button small switch-button" data-id="${id}" title="Switch to ${label}" aria-label="Switch to ${label}" ${disabled()}>${switchIcon}</button>`
                       : ''
                   }
                 </label>

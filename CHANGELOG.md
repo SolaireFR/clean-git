@@ -3,6 +3,17 @@
 All notable changes to the "clean-git" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-10-28
+
+### Added
+
+- Switching branch with uncommitted changes asks what to do with them: bring them to the new branch, stash them (`git stash push`), or discard them (`git switch --discard-changes`, untracked files are kept). Cancel leaves everything as is.
+
+### Changed
+
+- Clicking a branch or stash name now opens its changes page (it used to switch branch); the ⓘ button is removed.
+- Switching branch moves to a → arrow button on the right of each local branch other than the current one.
+
 ## [2.0.0] - 2026-10-22
 
 ### Added

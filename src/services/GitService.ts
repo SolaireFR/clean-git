@@ -205,8 +205,18 @@ export class GitService {
    * Check out a local branch; git refuses (and nothing changes) when local changes would be overwritten
    * or an operation (cherry-pick, revert, merge, rebase) is in progress: the error is thrown with git's stderr
    */
-  public async switchBranch(workingDir: string, branch: string): Promise<void> {
-    await this.git(['switch', '--no-guess', '--end-of-options', branch], workingDir);
+  public async switchBranch(workingDir: string, branch: string, discardChanges = false): Promise<void> {
+    await this.git(['switch', '--no-guess', ...(discardChanges ? ['--discard-changes'] : []), '--end-of-options', branch], workingDir);
+  }
+
+  /** Staged or unstaged changes to tracked files (untracked files follow a switch and are ignored) */
+  public async hasLocalChanges(workingDir: string): Promise<boolean> {
+    return (await this.git(['status', '--porcelain', '--untracked-files=no'], workingDir)).trim() !== '';
+  }
+
+  /** Stash the changes to tracked files (untracked files stay in place) */
+  public async stash(workingDir: string, message: string): Promise<void> {
+    await this.git(['stash', 'push', '-q', '-m', message], workingDir);
   }
 
   /**
