@@ -284,6 +284,7 @@ const styles = `
     white-space: nowrap;
   }
   .tag.remote { color: var(--vscode-descriptionForeground); opacity: 0.8; }
+  .tag.remote-only { color: var(--vscode-charts-orange); }
   .tag.local-only { color: var(--vscode-editorWarning-foreground); }
   .tag.current { color: var(--vscode-charts-blue); }
   .tag.main { color: var(--vscode-charts-purple); }
@@ -670,9 +671,11 @@ export function getBranchListContent(
     [
       branch.isCurrentBranch ? '<span class="tag current">current</span>' : '',
       branch.isMainBranch ? '<span class="tag main">main</span>' : '',
-      branch.exists.remote
-        ? '<span class="tag remote" title="Exists on the remote">remote</span>'
-        : '<span class="tag local-only" title="No matching branch on the remote">local only</span>',
+      branch.isLocal
+        ? branch.exists.remote
+          ? '<span class="tag remote" title="Exists on the remote">remote</span>'
+          : '<span class="tag local-only" title="No matching branch on the remote">local only</span>'
+        : '<span class="tag remote-only" title="Remote-only branch">remote-only</span>',
     ].join('');
 
   // Changes are summarized against the main branch: no info without one, nor on the main branch itself
@@ -683,8 +686,8 @@ export function getBranchListContent(
     tags: tags(branch),
     date: branch.lastCommit,
     locked: branch.isMainBranch || branch.isCurrentBranch,
-    info: hasMain && !branch.isMainBranch,
-    switchable: !branch.isCurrentBranch,
+    info: hasMain && !branch.isMainBranch && branch.isLocal,
+    switchable: branch.isLocal && !branch.isCurrentBranch,
   }));
   return listContent('branches', rows, repositories, selectedRepository, busy);
 }

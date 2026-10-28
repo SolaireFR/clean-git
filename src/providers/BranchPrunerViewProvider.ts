@@ -301,7 +301,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       const branches = items as Branch[];
       this.branches = branches;
       this.deletable = new Map(
-        branches.filter((branch) => !branch.isMainBranch && !branch.isCurrentBranch).map((branch) => [branch.name, branch.name])
+        branches.filter((branch) => branch.isLocal && !branch.isMainBranch && !branch.isCurrentBranch).map((branch) => [branch.name, branch.name])
       );
       this.view!.webview.html = getBranchListContent(branches, repositories, repository, busy);
     }

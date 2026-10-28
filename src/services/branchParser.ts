@@ -30,10 +30,13 @@ export function parseBranches(output: string): Branch[] {
     ? originHead.slice(`${REMOTES}origin/`.length)
     : ['main', 'master'].find((name) => localNames.includes(name));
 
-  // Most recent last commit first
-  return localRefs.sort((a, b) => b.lastCommit - a.lastCommit).map((r) => {
+  // Build branch objects from all refs
+  const allBranches: Branch[] = [];
+
+  // Add local branches
+  for (const r of localRefs) {
     const name = r.ref.slice(HEADS.length);
-    return {
+    allBranches.push({
       name,
       isLocal: true,
       exists: {
@@ -44,8 +47,33 @@ export function parseBranches(output: string): Branch[] {
       isCurrentBranch: r.isHead,
       isMainBranch: name === mainBranch,
       lastCommit: r.lastCommit,
-    };
-  });
+    });
+  }
+
+  // Add remote-only branches (branches that exist on remote but not locally)
+  for (const remoteRef of remoteRefs) {
+    const name = remoteRef.split('/').slice(3).join('/');
+    // Skip if this remote branch has a corresponding local branch
+    if (!localNames.includes(name)) {
+      const refInfo = refs.find((r) => r.ref === remoteRef);
+      if (refInfo) {
+        allBranches.push({
+          name,
+          isLocal: false,
+          exists: {
+            local: false,
+            remote: true,
+          },
+          isCurrentBranch: false,
+          isMainBranch: name === mainBranch,
+          lastCommit: refInfo.lastCommit,
+        });
+      }
+    }
+  }
+
+  // Sort all branches by last commit date (most recent first)
+  return allBranches.sort((a, b) => b.lastCommit - a.lastCommit);
 }
 
 /** `git stash list` format: same NUL-separated records as REF_FORMAT */
