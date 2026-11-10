@@ -46,7 +46,7 @@ On the Branches tab, click the refresh icon to fetch the remote and update the r
 
 Branches are sorted by last commit, newest first. The date of the last commit (`MM-DD`) is shown on the right of the tags; hover it for the full date and time.
 
-Click the → arrow on the right of a branch to switch to it (`git switch`). If you have uncommitted changes, Clean Git asks what to do with them: **Bring Changes** (keep them on the new branch; Git refuses if they would be overwritten), **Stash and Switch** (save them in a new stash first), or **Discard and Switch** (lose them; untracked files are kept). If an interrupted cherry-pick or revert blocks the switch, Clean Git offers to quit it first (`git cherry-pick --quit` / `git revert --quit`): the changes already applied are kept, only the interrupted operation is forgotten.
+Click the → arrow on the right of a branch to switch to it (`git switch`). Every branch except the current one has it; on a `remote-only` branch it creates the local branch, tracking the remote one (`git switch --guess`; Git refuses if several remotes have a branch with that name). If you have uncommitted changes, Clean Git asks what to do with them: **Bring Changes** (keep them on the new branch; Git refuses if they would be overwritten), **Stash and Switch** (save them in a new stash first), or **Discard and Switch** (lose them; untracked files are kept). If an interrupted cherry-pick or revert blocks the switch, Clean Git offers to quit it first (`git cherry-pick --quit` / `git revert --quit`): the changes already applied are kept, only the interrupted operation is forgotten.
 
 Click a branch name to see the changes it made since it left the main branch (compared from their common ancestor, so later commits on the main branch are not counted). The view shows the list of changed files, collapsed, with their added and deleted lines; open a file to load its diff. Click the back arrow to return to the list.
 
@@ -56,6 +56,7 @@ Stashes are listed newest first as `stash@{N}: message`, with their creation dat
 
 - `remote`: the branch exists on the remote
 - `local only`: no matching branch on the remote (never pushed, or deleted remotely)
+- `remote-only`: the branch exists on the remote but not locally (the → arrow checks it out)
 - `current`: the checked-out branch (cannot be deleted)
 - `main`: the default branch from `origin/HEAD`, else `main` or `master` (cannot be deleted)
 

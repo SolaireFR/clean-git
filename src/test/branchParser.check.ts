@@ -16,6 +16,7 @@ try {
   git(origin, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'init');
   git(origin, 'branch', 'feature/kept');
   git(origin, 'branch', 'gone');
+  git(origin, 'branch', 'remote-only');
   git(root, 'clone', '-q', origin, clone);
 
   git(clone, 'branch', '--track', 'gone', 'origin/gone');
@@ -36,7 +37,8 @@ try {
   );
   const byName = Object.fromEntries(branches.map((branch) => [branch.name, branch]));
 
-  assert.deepStrictEqual(Object.keys(byName).sort(), ['$(id);x&whoami', 'develop', 'feature/kept', 'gone', 'local-only']);
+  assert.deepStrictEqual(Object.keys(byName).sort(), ['$(id);x&whoami', 'develop', 'feature/kept', 'gone', 'local-only', 'remote-only']);
+  assert.ok(!byName['remote-only'].isLocal && byName['remote-only'].exists.remote);
   assert.ok(byName['develop'].isCurrentBranch && byName['develop'].isMainBranch, 'origin/HEAD defines the main branch');
   assert.ok(byName['develop'].exists.remote);
   assert.ok(byName['feature/kept'].exists.remote, 'tracked branch still on remote');
@@ -139,6 +141,11 @@ try {
   git(clone, 'switch', '-q', '--no-guess', '--discard-changes', '--end-of-options', 'develop');
   assert.strictEqual(hasLocalChanges(), false, 'discarded');
   assert.strictEqual(git(clone, 'branch', '--show-current').trim(), 'develop');
+
+  // Remote-only branch: same call as GitService.switchBranch(fromRemote), creates it locally tracking the remote
+  git(clone, 'switch', '-q', '--guess', '--end-of-options', 'remote-only');
+  assert.strictEqual(git(clone, 'branch', '--show-current').trim(), 'remote-only');
+  assert.strictEqual(git(clone, 'for-each-ref', '--format=%(upstream:short)', 'refs/heads/remote-only').trim(), 'origin/remote-only');
 
   console.log('branchParser (branches, stashes, changes, switch): ok');
 } finally {

@@ -202,11 +202,16 @@ export class GitService {
   }
 
   /**
-   * Check out a local branch; git refuses (and nothing changes) when local changes would be overwritten
+   * Check out a branch; git refuses (and nothing changes) when local changes would be overwritten
    * or an operation (cherry-pick, revert, merge, rebase) is in progress: the error is thrown with git's stderr
+   * @param fromRemote Remote-only branch: `--guess` creates the local branch tracking `<remote>/<branch>`
+   * (git refuses if several remotes have it); otherwise `--no-guess` never creates a branch
    */
-  public async switchBranch(workingDir: string, branch: string, discardChanges = false): Promise<void> {
-    await this.git(['switch', '--no-guess', ...(discardChanges ? ['--discard-changes'] : []), '--end-of-options', branch], workingDir);
+  public async switchBranch(workingDir: string, branch: string, discardChanges = false, fromRemote = false): Promise<void> {
+    await this.git(
+      ['switch', fromRemote ? '--guess' : '--no-guess', ...(discardChanges ? ['--discard-changes'] : []), '--end-of-options', branch],
+      workingDir
+    );
   }
 
   /** Staged or unstaged changes to tracked files (untracked files follow a switch and are ignored) */

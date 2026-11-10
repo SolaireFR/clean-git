@@ -165,6 +165,10 @@ const styles = `
     width: 20px;
     height: 20px;
   }
+  .switch-spacer {
+    flex-shrink: 0;
+    width: 20px;
+  }
   .icon-button:hover:not(:disabled) {
     background-color: var(--vscode-toolbar-hoverBackground);
   }
@@ -581,6 +585,8 @@ function listContent(
   const selected = repositories.find((repository) => repository.path === selectedRepository);
   const { noun, verb, icon, empty } = lists[tab];
   const plural = (count: number) => `${noun}${count > 1 ? 'es' : ''}`;
+  // Rows without the arrow keep its place so the date column stays aligned
+  const hasSwitch = rows.some((row) => row.switchable);
 
   const tabs = `<div class="tabs" role="tablist">
       ${(Object.keys(tabLabels) as Tab[])
@@ -637,7 +643,9 @@ function listContent(
                   ${
                     row.switchable
                       ? `<button class="icon-button small switch-button" data-id="${id}" title="Switch to ${label}" aria-label="Switch to ${label}" ${disabled()}>${switchIcon}</button>`
-                      : ''
+                      : hasSwitch
+                        ? '<span class="switch-spacer"></span>'
+                        : ''
                   }
                 </label>
               </li>`;
@@ -687,7 +695,7 @@ export function getBranchListContent(
     date: branch.lastCommit,
     locked: branch.isMainBranch || branch.isCurrentBranch,
     info: hasMain && !branch.isMainBranch && branch.isLocal,
-    switchable: branch.isLocal && !branch.isCurrentBranch,
+    switchable: !branch.isCurrentBranch,
   }));
   return listContent('branches', rows, repositories, selectedRepository, busy);
 }

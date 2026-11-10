@@ -3,6 +3,16 @@
 All notable changes to the "clean-git" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-11-10
+
+### Added
+
+- Remote-only branches get the → arrow too: it creates the local branch tracking the remote one and switches to it (`git switch --guess`).
+
+### Fixed
+
+- The date column stays aligned: rows without the → arrow (the current branch) keep its place instead of shifting to the right.
+
 ## [2.1.0] - 2026-10-28
 
 ### Added

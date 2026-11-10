@@ -159,7 +159,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       case 'switchBranch': {
         const branch = this.branches.find((branch) => branch.name === data.item);
         if (this.tab === 'branches' && branch && !branch.isCurrentBranch) {
-          return this.withControlsDisabled(() => this.switchBranch(branch.name));
+          return this.withControlsDisabled(() => this.switchBranch(branch.name, !branch.isLocal));
         }
         return this.setControlsState(true);
       }
@@ -387,8 +387,9 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
    * Check out a branch, then show the new current branch right away (same as after a delete)
    * Uncommitted changes: ask to bring, stash or discard them first
    * An interrupted cherry-pick or revert blocks the switch: offer to quit it first
+   * @param fromRemote Remote-only branch: created locally, tracking the remote one
    */
-  private async switchBranch(branch: string) {
+  private async switchBranch(branch: string, fromRemote: boolean) {
     const repository = this.selectedRepository;
     if (!this.view || !repository) {
       return;
@@ -411,7 +412,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
         }
         discard = choice === messages.discardButton;
       }
-      await this.gitService.switchBranch(repository, branch, discard);
+      await this.gitService.switchBranch(repository, branch, discard, fromRemote);
     } catch (error) {
       // e.g. "fatal: cannot switch branch while cherry-picking"
       const operation = /while (cherry-picking|reverting)/.exec(stderrOf(error))?.[1];
@@ -427,7 +428,7 @@ export class BranchPrunerViewProvider implements vscode.WebviewViewProvider {
       ) {
         try {
           await this.gitService.quitSequencer(repository, command);
-          await this.gitService.switchBranch(repository, branch, discard);
+          await this.gitService.switchBranch(repository, branch, discard, fromRemote);
         } catch (retryError) {
           vscode.window.showErrorMessage(`${messages.switchFailed(branch)} ${stderrOf(retryError)}`);
         }
