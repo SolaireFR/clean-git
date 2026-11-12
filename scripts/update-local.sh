@@ -12,10 +12,7 @@ vsix="clean-git-$version.vsix"
 step 'Clean old packages'
 rm -f ./*.vsix
 
-step 'Build'
-pnpm run build:esbuild --production
-
-step "Package $vsix"
+step "Build and package $vsix"
 pnpm dlx @vscode/vsce package --no-dependencies --out "$vsix"
 
 # The original extension (monkeykjy) and this one under its previous ID would add a duplicate view next to this one

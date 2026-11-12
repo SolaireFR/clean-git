@@ -2,7 +2,7 @@
   "name": "clean-git",
   "displayName": "Clean Git",
   "description": "Visually clean up local Git branches and stashes that are no longer needed",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "publisher": "SolaireFR",
   "author": {
     "name": "SolaireFR",
@@ -76,6 +76,7 @@
     "test": "vscode-test",
     "test:unit": "ts-node src/test/branchParser.check.ts",
     "build:esbuild": "ts-node ./esbuild.ts",
+    "vscode:prepublish": "pnpm run build:esbuild --production",
     "package": "vsce package",
     "publish": "vsce publish",
     "convert-icon": "node scripts/convert-icon.js"

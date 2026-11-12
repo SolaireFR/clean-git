@@ -14,8 +14,7 @@ $version = node -p "require('./package.json').version"
 $vsix = "clean-git-$version.vsix"
 
 Invoke-Step 'Clean old packages' { Remove-Item *.vsix -ErrorAction SilentlyContinue; $global:LASTEXITCODE = 0 }
-Invoke-Step 'Build' { pnpm run build:esbuild --production }
-Invoke-Step "Package $vsix" { pnpm dlx @vscode/vsce package --no-dependencies --out $vsix }
+Invoke-Step "Build and package $vsix" { pnpm dlx @vscode/vsce package --no-dependencies --out $vsix }
 
 # The original extension (monkeykjy) and this one under its previous ID would add a duplicate view next to this one
 $installed = code --list-extensions

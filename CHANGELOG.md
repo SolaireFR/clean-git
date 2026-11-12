@@ -3,6 +3,12 @@
 All notable changes to the "clean-git" extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] - 2026-11-12
+
+### Fixed
+
+- The 2.2.0 package shipped an outdated build (still showing v2.1.0, without the arrow on remote-only branches): packaging now always rebuilds the extension first.
+
 ## [2.2.0] - 2026-11-10
 
 ### Added

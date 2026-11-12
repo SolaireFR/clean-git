@@ -24,6 +24,7 @@ pnpm install
 | Command | What it does |
 |---|---|
 | `pnpm run build:esbuild` | Bundle `src/extension.ts` into `dist/extension.js` (add `--production` to minify) |
+| `vscode:prepublish` | Production build, run automatically by `vsce package` / `vsce publish` (the package never ships a stale `dist/`) |
 | `pnpm run watch` | Rebuild on every change (used by `F5`) |
 | `npx tsc --noEmit -p .` | Typecheck |
 | `pnpm run test:unit` | Parser checks plus the git calls (delete, drop, diff, switch blocked by a cherry-pick, stash or discard before a switch, switch to a remote-only branch), on a temporary Git repository (plain Node, no VS Code) |
@@ -84,8 +85,7 @@ Then run **Developer: Reload Window** in VS Code (the VS Code CLI cannot reload 
 Manual equivalent:
 
 ```bash
-pnpm run build:esbuild --production
-pnpm dlx @vscode/vsce package --no-dependencies
+pnpm dlx @vscode/vsce package --no-dependencies   # runs vscode:prepublish (production build) first
 code --install-extension clean-git-<version>.vsix --force
 ```
 
